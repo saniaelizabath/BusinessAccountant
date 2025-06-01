@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, getDocs, query, where, orderBy, writeBatch, doc } from 'firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
-import { Typography, Box, Grid, TextField, Button } from '@mui/material';
+import { Typography, Box, Grid, TextField, Button, Card, CardContent, Divider, IconButton, Collapse } from '@mui/material';
+import { Print, Visibility, VisibilityOff, Receipt, TableChart, Clear } from '@mui/icons-material';
 
 const CustomerOrders = () => {
   const [userId, setUserId] = useState(null);
@@ -14,7 +16,9 @@ const CustomerOrders = () => {
   const [filterType, setFilterType] = useState('all');
   const [filterDate, setFilterDate] = useState('');
   const [totalBalance, setTotalBalance] = useState(0);
+  const [showCustomerBill, setShowCustomerBill] = useState(false);
   const printRef = useRef();
+  const recordsPrintRef = useRef();
 
   const [formData, setFormData] = useState({
     orderDate: '',
@@ -123,22 +127,28 @@ const CustomerOrders = () => {
       // Refresh orders after adding
       fetchOrders();
       
-      setFormData({
-        orderDate: '',
-        customerName: '',
-        address: '',
-        number: '',
-        itemName: '',
-        itemDescription: '',
-        rate: '',
-        quantity: '',
-        discount: '',
-        advance: '',
-        amountGiven: ''
-      });
+      // Don't clear form data - only clear when user clicks clear button
+      alert('Order added successfully!');
     } catch (error) {
       console.error('Error adding order:', error);
     }
+  };
+
+  // Function to clear customer bill data
+  const clearCustomerBill = () => {
+    setFormData({
+      orderDate: '',
+      customerName: '',
+      address: '',
+      number: '',
+      itemName: '',
+      itemDescription: '',
+      rate: '',
+      quantity: '',
+      discount: '',
+      advance: '',
+      amountGiven: ''
+    });
   };
 
   const calculatedTotal = formData.rate * formData.quantity - (Number(formData.discount) + Number(formData.advance));
@@ -156,6 +166,35 @@ const CustomerOrders = () => {
             h2 { text-align: center; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             td, th { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          </style>
+        </head>
+        <body>
+          ${printContents}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const handlePrintRecords = () => {
+    const printContents = recordsPrintRef.current.innerHTML;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Orders & Payment Records</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; }
+            h2, h3 { text-align: center; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            td, th { border: 1px solid #333; padding: 6px; text-align: left; font-size: 11px; }
+            th { background-color: #f5f5f5; font-weight: bold; }
+            .order-row { background-color: #f9f9f9; }
+            .payment-row { background-color: #e8f5e8; }
+            .balance-positive { color: #d32f2f; font-weight: bold; }
+            .balance-negative { color: #2e7d32; font-weight: bold; }
+            .total-balance { font-size: 14px; font-weight: bold; margin-top: 20px; text-align: center; }
           </style>
         </head>
         <body>
@@ -292,230 +331,382 @@ const CustomerOrders = () => {
   ].sort((a, b) => b.sortDate - a.sortDate);
   
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">Add Customer Order</h2>
-
-      <form onSubmit={handleSubmit}>
-        <table className="table-auto w-full mb-4 border">
-          <thead>
-            <tr className="bg-gray-200">
-              <th className="p-2 border">Date</th>
-              <th className="p-2 border">Customer Name</th>
-              <th className="p-2 border">Address</th>
-              <th className="p-2 border">Phone</th>
-              <th className="p-2 border">Item Name</th>
-              <th className="p-2 border">Item Description</th>
-              <th className="p-2 border">Rate</th>
-              <th className="p-2 border">Quantity</th>
-              <th className="p-2 border">Discount</th>
-              <th className="p-2 border">Advance</th>
-              <th className="p-2 border">Amount Given</th>
-              <th className="p-2 border">Total Amount</th>
-              <th className="p-2 border">Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="p-2 border"><input type="date" name="orderDate" value={formData.orderDate} onChange={handleChange} required className="border p-1" /></td>
-              <td className="p-2 border"><input name="customerName" value={formData.customerName} onChange={handleChange} required className="border p-1" /></td>
-              <td className="p-2 border"><input name="address" value={formData.address} onChange={handleChange} className="border p-1" /></td>
-              <td className="p-2 border"><input name="number" value={formData.number} onChange={handleChange} className="border p-1" /></td>
-              <td className="p-2 border">
-                <input list="productNames" name="itemName" value={formData.itemName} onChange={handleChange} className="border p-1" />
-                <datalist id="productNames">
-                  {Array.from(new Set(products.map(p => p.itemName))).map((name, i) => (
-                    <option key={i} value={name} />
-                  ))}
-                </datalist>
-              </td>
-              <td className="p-2 border">
-                <input list="productDescriptions" name="itemDescription" value={formData.itemDescription} onChange={handleChange} className="border p-1" />
-                <datalist id="productDescriptions">
-                  {products
-                    .filter(p => p.itemName === formData.itemName)
-                    .map((p, i) => <option key={i} value={p.itemDescription} />)}
-                </datalist>
-              </td>
-              <td className="p-2 border"><input name="rate" type="number" value={formData.rate} readOnly className="border p-1 bg-gray-100" /></td>
-              <td className="p-2 border"><input name="quantity" type="number" value={formData.quantity} onChange={(e) => setFormData(prev => ({ ...prev, quantity: Number(e.target.value) }))} className="border p-1" /></td>
-              <td className="p-2 border"><input name="discount" type="number" value={formData.discount} onChange={(e) => setFormData(prev => ({ ...prev, discount: Number(e.target.value) }))} className="border p-1" /></td>
-              <td className="p-2 border"><input name="advance" type="number" value={formData.advance} onChange={(e) => setFormData(prev => ({ ...prev, advance: Number(e.target.value) }))} className="border p-1" /></td>
-              <td className="p-2 border"><input name="amountGiven" type="number" value={formData.amountGiven} onChange={(e) => setFormData(prev => ({ ...prev, amountGiven: Number(e.target.value) }))} className="border p-1" /></td>
-              <td className="p-2 border bg-gray-100">{calculatedTotal || 0}</td>
-              <td className="p-2 border bg-gray-100">{calculatedBalance || 0}</td>
-            </tr>
-          </tbody>
-        </table>
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">Add Order</button>
-      </form>
-
-      <div className="mt-8" ref={printRef}>
-        <h2 className="text-center text-xl font-bold">Johnsons Cement Products</h2>
-        <h3 className="text-lg font-semibold mt-4">Customer Bill</h3>
-        <table className="w-full border mt-2">
-          <tbody>
-            <tr><td className="border p-2">Customer Name</td><td className="border p-2">{formData.customerName}</td></tr>
-            <tr><td className="border p-2">Address</td><td className="border p-2">{formData.address}</td></tr>
-            <tr><td className="border p-2">Phone</td><td className="border p-2">{formData.number}</td></tr>
-            <tr><td className="border p-2">Item</td><td className="border p-2">{formData.itemName}</td></tr>
-            <tr><td className="border p-2">Description</td><td className="border p-2">{formData.itemDescription}</td></tr>
-            <tr><td className="border p-2">Rate</td><td className="border p-2">{formData.rate}</td></tr>
-            <tr><td className="border p-2">Quantity</td><td className="border p-2">{formData.quantity}</td></tr>
-            <tr><td className="border p-2">Discount</td><td className="border p-2">{formData.discount}</td></tr>
-            <tr><td className="border p-2">Advance</td><td className="border p-2">{formData.advance}</td></tr>
-            <tr><td className="border p-2">Amount Given</td><td className="border p-2">{formData.amountGiven}</td></tr>
-            <tr><td className="border p-2 font-bold">Total Amount</td><td className="border p-2 font-bold">{calculatedTotal}</td></tr>
-            <tr><td className="border p-2 font-bold">Balance</td><td className="border p-2 font-bold">{calculatedBalance}</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <button onClick={handlePrint} className="mt-4 bg-green-600 text-white px-4 py-2 rounded">Print Bill</button>
-
-      <div className="my-6">
-        <label className="mr-2 font-semibold">Filter Orders:</label>
-        <select value={filterType} onChange={e => setFilterType(e.target.value)} className="border p-1 mr-2">
-          <option value="all">All</option>
-          <option value="day">Records of the Day</option>
-          <option value="month">Records of the Month</option>
-          <option value="specific">Search by Specific Date</option>
-        </select>
-        {filterType === 'specific' && (
-          <input
-            type="date"
-            value={filterDate}
-            onChange={e => setFilterDate(e.target.value)}
-            className="border p-1"
-          />
-        )}
-      </div>
-      
-      <div className="my-4 flex flex-wrap gap-4">
-        <div>
-          <label className="mr-2 font-medium">Filter by Month/Year:</label>
-          <input
-            type="month"
-            value={searchMonthYear}
-            onChange={e => setSearchMonthYear(e.target.value)}
-            className="border p-1"
-          />
-        </div>
-        <div>
-          <label className="mr-2 font-medium">Filter by Customer Name:</label>
-          <input
-            type="text"
-            placeholder="Enter customer name"
-            value={searchCustomerName}
-            onChange={e => setSearchCustomerName(e.target.value.toLowerCase())}
-            className="border p-1"
-          />
-        </div>
-      </div>
-
-      {/* Combined Orders and Payments Table */}
-      <h3 className="text-lg font-semibold mt-6 mb-2">Orders & Payment Records</h3>
-      <table className="min-w-full border">
-        <thead className="bg-gray-200">
-          <tr>
-            <th className="border p-2">Type</th>
-            <th className="border p-2">Date</th>
-            <th className="border p-2">Customer Name</th>
-            <th className="border p-2">Address</th>
-            <th className="border p-2">Phone</th>
-            <th className="border p-2">Item</th>
-            <th className="border p-2">Description</th>
-            <th className="border p-2">Rate</th>
-            <th className="border p-2">Quantity</th>
-            <th className="border p-2">Discount</th>
-            <th className="border p-2">Advance</th>
-            <th className="border p-2">Amount Given</th>
-            <th className="border p-2">Total</th>
-            <th className="border p-2">Balance/Payment</th>
-          </tr>
-        </thead>
-        <tbody>
-          {combinedData.map((record, idx) => (
-            <tr key={`${record.type}-${idx}`} className={record.type === 'payment' ? 'bg-green-50' : ''}>
-              <td className="border p-2 font-semibold">
-                {record.type === 'order' ? (
-                  <span className="text-blue-600">ORDER</span>
-                ) : (
-                  <span className="text-green-600">PAYMENT</span>
-                )}
-              </td>
-              <td className="border p-2">{record.date}</td>
-              <td className="border p-2">{record.customerName}</td>
-              {record.type === 'order' ? (
-                <>
-                  <td className="border p-2">{record.address}</td>
-                  <td className="border p-2">{record.number}</td>
-                  <td className="border p-2">{record.itemName}</td>
-                  <td className="border p-2">{record.itemDescription}</td>
-                  <td className="border p-2">{record.rate}</td>
-                  <td className="border p-2">{record.quantity}</td>
-                  <td className="border p-2">{record.discount}</td>
-                  <td className="border p-2">{record.advance}</td>
-                  <td className="border p-2">{record.amountGiven}</td>
-                  <td className="border p-2">{record.totalAmount}</td>
-                  <td className="border p-2 text-red-600 font-semibold">₹{record.balance}</td>
-                </>
-              ) : (
-                <>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-gray-400">-</td>
-                  <td className="border p-2 text-green-600 font-semibold">-₹{record.amount}</td>
-                </>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      <Typography variant="h6" style={{ marginTop: 16, color: totalBalance >= 0 ? 'red' : 'green' }}>
-        Net Balance: ₹{totalBalance.toFixed(2)} {totalBalance < 0 ? '(Overpaid)' : '(Due)'}
-      </Typography>
-
-      {searchCustomerName && filteredOrders.length > 0 && (
-        <Box mt={4} p={3} border="1px solid #ccc" borderRadius={2}>
-          <Typography variant="h6" gutterBottom>
-            Record Payment for {searchCustomerName}
+    <Box sx={{ p: 3, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+      {/* Header */}
+      <Card sx={{ mb: 3, boxShadow: 3 }}>
+        <CardContent>
+          <Typography variant="h4" component="h1" sx={{ textAlign: 'center', color: '#1976d2', fontWeight: 'bold', mb: 1 }}>
+            Johnsons Cement Products
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                type="number"
-                label="Payment Amount"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                type="date"
-                label="Payment Date"
-                InputLabelProps={{ shrink: true }}
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Button variant="contained" color="primary" onClick={handlePayment}>
-                Record Payment
+          <Typography variant="h6" sx={{ textAlign: 'center', color: '#666' }}>
+            Customer Order Management System
+          </Typography>
+        </CardContent>
+      </Card>
+
+      {/* Customer Orders Section - Now always visible */}
+      <Card sx={{ mb: 4, boxShadow: 2 }}>
+        <CardContent>
+          <Typography variant="h5" sx={{ mb: 3, color: '#1976d2', fontWeight: 'bold' }}>
+            Add Customer Order
+          </Typography>
+
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ overflowX: 'auto', mb: 3 }}>
+              <table style={{ width: '100%', minWidth: '1200px', borderCollapse: 'collapse', border: '1px solid #ddd' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#1976d2', color: 'white' }}>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Date</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Customer Name</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Address</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Phone</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Item Name</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Item Description</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Rate</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Quantity</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Discount</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Advance</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Amount Given</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Total Amount</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input type="date" name="orderDate" value={formData.orderDate} onChange={handleChange} required style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input name="customerName" value={formData.customerName} onChange={handleChange} required style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input name="address" value={formData.address} onChange={handleChange} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input name="number" value={formData.number} onChange={handleChange} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input list="productNames" name="itemName" value={formData.itemName} onChange={handleChange} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                      <datalist id="productNames">
+                        {Array.from(new Set(products.map(p => p.itemName))).map((name, i) => (
+                          <option key={i} value={name} />
+                        ))}
+                      </datalist>
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input list="productDescriptions" name="itemDescription" value={formData.itemDescription} onChange={handleChange} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                      <datalist id="productDescriptions">
+                        {products
+                          .filter(p => p.itemName === formData.itemName)
+                          .map((p, i) => <option key={i} value={p.itemDescription} />)}
+                      </datalist>
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input name="rate" type="number" value={formData.rate} readOnly style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px', backgroundColor: '#f5f5f5' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input name="quantity" type="number" value={formData.quantity} onChange={(e) => setFormData(prev => ({ ...prev, quantity: Number(e.target.value) }))} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input name="discount" type="number" value={formData.discount} onChange={(e) => setFormData(prev => ({ ...prev, discount: Number(e.target.value) }))} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input name="advance" type="number" value={formData.advance} onChange={(e) => setFormData(prev => ({ ...prev, advance: Number(e.target.value) }))} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <input name="amountGiven" type="number" value={formData.amountGiven} onChange={(e) => setFormData(prev => ({ ...prev, amountGiven: Number(e.target.value) }))} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
+                    </td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f0f0f0', fontWeight: 'bold', textAlign: 'center' }}>{calculatedTotal || 0}</td>
+                    <td style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f0f0f0', fontWeight: 'bold', textAlign: 'center', color: calculatedBalance >= 0 ? '#d32f2f' : '#2e7d32' }}>{calculatedBalance || 0}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+              <Button type="submit" variant="contained" color="primary" size="large" sx={{ px: 4, py: 1.5 }}>
+                Add Order
               </Button>
+              <Button 
+                type="button" 
+                variant="outlined" 
+                color="secondary" 
+                size="large" 
+                startIcon={<Clear />}
+                onClick={clearCustomerBill}
+                sx={{ px: 4, py: 1.5 }}
+              >
+                Clear Form
+              </Button>
+            </Box>
+          </form>
+
+          {/* Toggle Customer Bill Button */}
+          <Box sx={{ mb: 3, textAlign: 'center' }}>
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={showCustomerBill ? <VisibilityOff /> : <Visibility />}
+              onClick={() => setShowCustomerBill(!showCustomerBill)}
+              sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+            >
+              {showCustomerBill ? 'Hide Customer Bill' : 'Show Customer Bill'}
+            </Button>
+          </Box>
+
+          {/* Customer Bill Section - Now toggleable */}
+          <Collapse in={showCustomerBill}>
+            <Divider sx={{ my: 4 }} />
+            <div ref={printRef}>
+              <Typography variant="h4" sx={{ textAlign: 'center', fontWeight: 'bold', mb: 2 }}>
+                Johnsons Cement Products
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>Customer Bill</Typography>
+              <table style={{ width: '100%', border: '1px solid #333', marginTop: '8px' }}>
+                <tbody>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Customer Name</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.customerName}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Address</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.address}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Phone</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.number}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Item</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.itemName}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Description</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.itemDescription}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Rate</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.rate}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Quantity</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.quantity}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Discount</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.discount}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Advance</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.advance}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Amount Given</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.amountGiven}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Total Amount</td><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>{calculatedTotal}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>Balance</td><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>{calculatedBalance}</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <Button onClick={handlePrint} variant="contained" color="success" startIcon={<Receipt />} sx={{ mt: 2, px: 4, py: 1.5 }}>
+              Print Bill
+            </Button>
+          </Collapse>
+        </CardContent>
+      </Card>
+
+      {/* Filters Section */}
+      <Card sx={{ mb: 3, boxShadow: 2 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 'bold' }}>
+            Filter Records
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={3}>
+              <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'bold' }}>Filter Type:</Typography>
+              <select 
+                value={filterType} 
+                onChange={e => setFilterType(e.target.value)} 
+                style={{ border: '1px solid #ccc', padding: '12px', width: '100%', borderRadius: '4px', fontSize: '14px' }}
+              >
+                <option value="all">All Records</option>
+                <option value="day">Today's Records</option>
+                <option value="month">This Month's Records</option>
+                <option value="specific">Specific Date</option>
+              </select>
+            </Grid>
+            {filterType === 'specific' && (
+              <Grid item xs={12} md={3}>
+                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'bold' }}>Select Date:</Typography>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={e => setFilterDate(e.target.value)}
+                  style={{ border: '1px solid #ccc', padding: '12px', width: '100%', borderRadius: '4px', fontSize: '14px' }}
+                />
+              </Grid>
+            )}
+            <Grid item xs={12} md={3}>
+              <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'bold' }}>Month/Year Filter:</Typography>
+              <input
+                type="month"
+                value={searchMonthYear}
+                onChange={e => setSearchMonthYear(e.target.value)}
+                style={{ border: '1px solid #ccc', padding: '12px', width: '100%', borderRadius: '4px', fontSize: '14px' }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 'bold' }}>Customer Name:</Typography>
+              <input
+                type="text"
+                placeholder="Enter customer name"
+                value={searchCustomerName}
+                onChange={e => setSearchCustomerName(e.target.value.toLowerCase())}
+                style={{ border: '1px solid #ccc', padding: '12px', width: '100%', borderRadius: '4px', fontSize: '14px' }}
+              />
             </Grid>
           </Grid>
-        </Box>
+        </CardContent>
+      </Card>
+
+
+      {/* Orders & Payment Records Section */}
+      <Card sx={{ mb: 3, boxShadow: 2 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h5" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+              Orders & Payment Records
+            </Typography>
+            <Button
+              onClick={handlePrintRecords}
+              variant="contained"
+              color="secondary"
+              startIcon={<Print />}
+              sx={{ px: 3, py: 1.5 }}
+            >
+              Print Records
+            </Button>
+          </Box>
+
+          <div ref={recordsPrintRef}>
+            <Typography variant="h4" sx={{ textAlign: 'center', fontWeight: 'bold', mb: 2 }}>
+              Johnsons Cement Products
+            </Typography>
+            <Typography variant="h6" sx={{ textAlign: 'center', mb: 3 }}>
+              Orders & Payment Records Report
+            </Typography>
+            
+            <Box sx={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: '1400px', borderCollapse: 'collapse', border: '1px solid #333' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#1976d2', color: 'white' }}>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Type</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Date</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Customer Name</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Address</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Phone</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Item</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Description</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Rate</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Quantity</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Discount</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Advance</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Amount Given</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Total</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Balance/Payment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {combinedData.map((record, idx) => (
+                    <tr key={`${record.type}-${idx}`} className={record.type === 'payment' ? 'payment-row' : 'order-row'}>
+                      <td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold', textAlign: 'center' }}>
+                        {record.type === 'order' ? (
+                          <span style={{ color: '#1976d2', backgroundColor: '#e3f2fd', padding: '4px 8px', borderRadius: '4px' }}>ORDER</span>
+                        ) : (
+                          <span style={{ color: '#2e7d32', backgroundColor: '#e8f5e8', padding: '4px 8px', borderRadius: '4px' }}>PAYMENT</span>
+                        )}
+                      </td>
+                      <td style={{ border: '1px solid #333', padding: '8px' }}>{record.date}</td>
+                      <td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>{record.customerName}</td>
+                      {record.type === 'order' ? (
+                        <>
+                          <td style={{ border: '1px solid #333', padding: '8px' }}>{record.address}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px' }}>{record.number}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px' }}>{record.itemName}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px' }}>{record.itemDescription}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.rate}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'center' }}>{record.quantity}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.discount}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.advance}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.amountGiven}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{record.totalAmount}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }} className="balance-positive">₹{record.balance}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }} className="balance-negative">-₹{record.amount}</td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Box>
+            
+            <div className="total-balance" style={{ marginTop: '20px', textAlign: 'center', fontSize: '18px', fontWeight: 'bold', padding: '15px', backgroundColor: totalBalance >= 0 ? '#ffebee' : '#e8f5e8', border: `2px solid ${totalBalance >= 0 ? '#f44336' : '#4caf50'}`, borderRadius: '8px' }}>
+              Net Balance: ₹{totalBalance.toFixed(2)} {totalBalance < 0 ? '(Overpaid)' : '(Due)'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Net Balance Display */}
+      <Card sx={{ mb: 3, boxShadow: 2 }}>
+        <CardContent sx={{ textAlign: 'center' }}>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 'bold', 
+              color: totalBalance >= 0 ? '#d32f2f' : '#2e7d32',
+              backgroundColor: totalBalance >= 0 ? '#ffebee' : '#e8f5e8',
+              padding: 2,
+              borderRadius: 2,
+              border: `2px solid ${totalBalance >= 0 ? '#f44336' : '#4caf50'}`
+            }}
+          >
+            Net Balance: ₹{totalBalance.toFixed(2)} {totalBalance < 0 ? '(Overpaid)' : '(Due)'}
+          </Typography>
+        </CardContent>
+      </Card>
+
+      {/* Payment Recording Section */}
+      {searchCustomerName && filteredOrders.length > 0 && (
+        <Card sx={{ boxShadow: 2 }}>
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 3, color: '#1976d2', fontWeight: 'bold' }}>
+              Record Payment for: {searchCustomerName.toUpperCase()}
+            </Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Payment Amount (₹)"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  variant="outlined"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  label="Payment Date"
+                  InputLabelProps={{ shrink: true }}
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  variant="outlined"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Button 
+                  variant="contained" 
+                  color="success" 
+                  onClick={handlePayment}
+                  fullWidth
+                  size="large"
+                  sx={{ height: '56px', fontSize: '1.1rem', borderRadius: 2 }}
+                >
+                  Record Payment
+                </Button>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
       )}
-    </div>
+    </Box>
   );
 };
 
