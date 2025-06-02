@@ -25,15 +25,17 @@ const CustomerOrders = () => {
     customerName: '',
     address: '',
     number: '',
-    itemName: '',
-    itemDescription: '',
-    rate: '',
-    quantity: '',
     discount: '',
     advance: '',
     amountGiven: ''
   });
 
+  const [items, setItems] = useState([{
+    itemName: '',
+    itemDescription: '',
+    rate: '',
+    quantity: ''
+  }]);
   // Filter states
   const [searchMonthYear, setSearchMonthYear] = useState('');
   const [searchCustomerName, setSearchCustomerName] = useState('');
@@ -83,40 +85,66 @@ const CustomerOrders = () => {
     fetchPayments();
   }, [userId]);
 
-  useEffect(() => {
-    const { itemName, itemDescription } = formData;
-    const matchedProduct = products.find(p =>
-      p.itemName === itemName && p.itemDescription === itemDescription
-    );
-    if (matchedProduct) {
-      setFormData(prev => ({
-        ...prev,
-        rate: matchedProduct.rate || 0
-      }));
-    }
-  }, [formData.itemName, formData.itemDescription, products]);
 
   const handleChange = e => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
+  
+  const addItem = () => {
+    setItems([...items, { itemName: '', itemDescription: '', rate: '', quantity: '' }]);
+  };
 
+  const removeItem = (index) => {
+    if (items.length > 1) {
+      const newItems = items.filter((_, i) => i !== index);
+      setItems(newItems);
+    }
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...items];
+    newItems[index][field] = value;
+    
+    // Auto-fill rate when item is selected
+    if (field === 'itemName' || field === 'itemDescription') {
+      const matchedProduct = products.find(p =>
+        p.itemName === newItems[index].itemName && 
+        p.itemDescription === newItems[index].itemDescription
+      );
+      if (matchedProduct && newItems[index].itemName && newItems[index].itemDescription) {
+        newItems[index].rate = matchedProduct.rate || 0;
+      }
+    }
+    
+    setItems(newItems);
+  };
   const handleSubmit = async e => {
     e.preventDefault();
     if (!userId) return;
 
-    const { rate, quantity, discount, advance, amountGiven } = formData;
-    const totalAmount = rate * quantity - (discount + advance);
-    const balance = totalAmount - amountGiven;
+    // Validate that at least one item has all required fields
+    const validItems = items.filter(item => 
+      item.itemName && item.itemDescription && item.rate && item.quantity
+    );
+    
+    if (validItems.length === 0) {
+      alert('Please add at least one complete item to the order.');
+      return;
+    }
 
     const orderData = {
       ...formData,
-      rate: Number(rate),
-      quantity: Number(quantity),
-      discount: Number(discount),
-      advance: Number(advance),
-      amountGiven: Number(amountGiven),
-      totalAmount,
-      balance,
+      items: validItems.map(item => ({
+        ...item,
+        rate: Number(item.rate),
+        quantity: Number(item.quantity)
+      })),
+      discount: Number(formData.discount),
+      advance: Number(formData.advance),
+      amountGiven: Number(formData.amountGiven),
+      itemsSubtotal,
+      totalAmount: calculatedTotal,
+      balance: calculatedBalance,
       timestamp: Timestamp.now()
     };
 
@@ -124,16 +152,12 @@ const CustomerOrders = () => {
       const ordersRef = collection(db, 'users', userId, 'customerOrders');
       await addDoc(ordersRef, orderData);
       
-      // Refresh orders after adding
       fetchOrders();
-      
-      // Don't clear form data - only clear when user clicks clear button
       alert('Order added successfully!');
     } catch (error) {
       console.error('Error adding order:', error);
     }
   };
-
   // Function to clear customer bill data
   const clearCustomerBill = () => {
     setFormData({
@@ -141,19 +165,24 @@ const CustomerOrders = () => {
       customerName: '',
       address: '',
       number: '',
-      itemName: '',
-      itemDescription: '',
-      rate: '',
-      quantity: '',
       discount: '',
       advance: '',
       amountGiven: ''
     });
+    setItems([{
+      itemName: '',
+      itemDescription: '',
+      rate: '',
+      quantity: ''
+    }]);
   };
 
-  const calculatedTotal = formData.rate * formData.quantity - (Number(formData.discount) + Number(formData.advance));
+  const itemsSubtotal = items.reduce((sum, item) => 
+    sum + (Number(item.rate) * Number(item.quantity) || 0), 0
+  );
+  const calculatedTotal = itemsSubtotal - (Number(formData.discount) + Number(formData.advance));
   const calculatedBalance = calculatedTotal - Number(formData.amountGiven);
-
+  
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;
     const printWindow = window.open('', '_blank');
@@ -353,90 +382,217 @@ const CustomerOrders = () => {
 
           <form onSubmit={handleSubmit}>
             <Box sx={{ overflowX: 'auto', mb: 3 }}>
-              <table style={{ width: '100%', minWidth: '1200px', borderCollapse: 'collapse', border: '1px solid #ddd' }}>
+              {/* Customer Info Section */}
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Customer Information</Typography>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Order Date"
+                    InputLabelProps={{ shrink: true }}
+                    name="orderDate"
+                    value={formData.orderDate}
+                    onChange={handleChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    label="Customer Name"
+                    name="customerName"
+                    value={formData.customerName}
+                    onChange={handleChange}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    label="Address"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    label="Phone Number"
+                    name="number"
+                    value={formData.number}
+                    onChange={handleChange}
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Items Section */}
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Items</Typography>
+              <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', border: '1px solid #ddd', marginBottom: '20px' }}>
                 <thead>
                   <tr style={{ backgroundColor: '#1976d2', color: 'white' }}>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Date</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Customer Name</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Address</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Phone</th>
                     <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Item Name</th>
                     <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Item Description</th>
                     <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Rate</th>
                     <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Quantity</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Discount</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Advance</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Amount Given</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Total Amount</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Balance</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Subtotal</th>
+                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input type="date" name="orderDate" value={formData.orderDate} onChange={handleChange} required style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input name="customerName" value={formData.customerName} onChange={handleChange} required style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input name="address" value={formData.address} onChange={handleChange} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input name="number" value={formData.number} onChange={handleChange} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input list="productNames" name="itemName" value={formData.itemName} onChange={handleChange} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                      <datalist id="productNames">
-                        {Array.from(new Set(products.map(p => p.itemName))).map((name, i) => (
-                          <option key={i} value={name} />
-                        ))}
-                      </datalist>
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input list="productDescriptions" name="itemDescription" value={formData.itemDescription} onChange={handleChange} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                      <datalist id="productDescriptions">
-                        {products
-                          .filter(p => p.itemName === formData.itemName)
-                          .map((p, i) => <option key={i} value={p.itemDescription} />)}
-                      </datalist>
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input name="rate" type="number" value={formData.rate} readOnly style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px', backgroundColor: '#f5f5f5' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input name="quantity" type="number" value={formData.quantity} onChange={(e) => setFormData(prev => ({ ...prev, quantity: Number(e.target.value) }))} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input name="discount" type="number" value={formData.discount} onChange={(e) => setFormData(prev => ({ ...prev, discount: Number(e.target.value) }))} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input name="advance" type="number" value={formData.advance} onChange={(e) => setFormData(prev => ({ ...prev, advance: Number(e.target.value) }))} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd' }}>
-                      <input name="amountGiven" type="number" value={formData.amountGiven} onChange={(e) => setFormData(prev => ({ ...prev, amountGiven: Number(e.target.value) }))} style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} />
-                    </td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f0f0f0', fontWeight: 'bold', textAlign: 'center' }}>{calculatedTotal || 0}</td>
-                    <td style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f0f0f0', fontWeight: 'bold', textAlign: 'center', color: calculatedBalance >= 0 ? '#d32f2f' : '#2e7d32' }}>{calculatedBalance || 0}</td>
-                  </tr>
+                  {items.map((item, index) => (
+                    <tr key={index}>
+                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                        <input 
+                          list={`productNames-${index}`} 
+                          value={item.itemName} 
+                          onChange={(e) => handleItemChange(index, 'itemName', e.target.value)}
+                          style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} 
+                        />
+                        <datalist id={`productNames-${index}`}>
+                          {Array.from(new Set(products.map(p => p.itemName))).map((name, i) => (
+                            <option key={i} value={name} />
+                          ))}
+                        </datalist>
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                        <input 
+                          list={`productDescriptions-${index}`} 
+                          value={item.itemDescription} 
+                          onChange={(e) => handleItemChange(index, 'itemDescription', e.target.value)}
+                          style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} 
+                        />
+                        <datalist id={`productDescriptions-${index}`}>
+                          {products
+                            .filter(p => p.itemName === item.itemName)
+                            .map((p, i) => <option key={i} value={p.itemDescription} />)}
+                        </datalist>
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                        <input 
+                          type="number" 
+                          value={item.rate} 
+                          readOnly 
+                          style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px', backgroundColor: '#f5f5f5' }} 
+                        />
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                        <input 
+                          type="number" 
+                          value={item.quantity} 
+                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                          style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} 
+                        />
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f0f0f0', fontWeight: 'bold', textAlign: 'center' }}>
+                        {(Number(item.rate) * Number(item.quantity)) || 0}
+                      </td>
+                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                        <Button 
+                          variant="outlined" 
+                          color="error" 
+                          size="small"
+                          onClick={() => removeItem(index)}
+                          disabled={items.length === 1}
+                        >
+                          Remove
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-              <Button type="submit" variant="contained" color="primary" size="large" sx={{ px: 4, py: 1.5 }}>
-                Add Order
-              </Button>
-              <Button 
-                type="button" 
-                variant="outlined" 
-                color="secondary" 
-                size="large" 
-                startIcon={<Clear />}
-                onClick={clearCustomerBill}
-                sx={{ px: 4, py: 1.5 }}
-              >
-                Clear Form
-              </Button>
+              
+              <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+                <Button variant="outlined" color="primary" onClick={addItem}>
+                  Add Another Item
+                </Button>
+                
+                <Button 
+                  type="submit" 
+                  variant="contained" 
+                  color="primary" 
+                  sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+                >
+                  Add Order
+                </Button>
+                
+                <Button 
+                  variant="outlined" 
+                  color="secondary" 
+                  onClick={clearCustomerBill}
+                  startIcon={<Clear />}
+                  sx={{ px: 3, py: 1.5 }}
+                >
+                  Clear Form
+                </Button>
+              </Box>
+
+              {/* Order Summary */}
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Order Summary</Typography>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    fullWidth
+                    label="Items Subtotal"
+                    value={itemsSubtotal}
+                    InputProps={{ readOnly: true }}
+                    sx={{ backgroundColor: '#f5f5f5' }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Discount"
+                    name="discount"
+                    value={formData.discount}
+                    onChange={handleChange}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Advance"
+                    name="advance"
+                    value={formData.advance}
+                    onChange={handleChange}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Amount Given"
+                    name="amountGiven"
+                    value={formData.amountGiven}
+                    onChange={handleChange}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    fullWidth
+                    label="Total Amount"
+                    value={calculatedTotal || 0}
+                    InputProps={{ readOnly: true }}
+                    sx={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    fullWidth
+                    label="Balance"
+                    value={calculatedBalance || 0}
+                    InputProps={{ 
+                      readOnly: true,
+                      style: { color: calculatedBalance >= 0 ? '#d32f2f' : '#2e7d32', fontWeight: 'bold' }
+                    }}
+                    sx={{ backgroundColor: '#f0f0f0' }}
+                  />
+                </Grid>
+              </Grid>
             </Box>
           </form>
 
@@ -466,10 +622,37 @@ const CustomerOrders = () => {
                   <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Customer Name</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.customerName}</td></tr>
                   <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Address</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.address}</td></tr>
                   <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Phone</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.number}</td></tr>
-                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Item</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.itemName}</td></tr>
-                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Description</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.itemDescription}</td></tr>
-                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Rate</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.rate}</td></tr>
-                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Quantity</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.quantity}</td></tr>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Order Date</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.orderDate}</td></tr>
+                </tbody>
+              </table>  
+
+              <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 2, mb: 1 }}>Items Ordered:</Typography>
+              <table style={{ width: '100%', border: '1px solid #333', marginTop: '8px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f5f5f5' }}>
+                    <th style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Item</th>
+                    <th style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Description</th>
+                    <th style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Rate</th>
+                    <th style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Qty</th>
+                    <th style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => (
+                    <tr key={index}>
+                      <td style={{ border: '1px solid #333', padding: '8px' }}>{item.itemName}</td>
+                      <td style={{ border: '1px solid #333', padding: '8px' }}>{item.itemDescription}</td>
+                      <td style={{ border: '1px solid #333', padding: '8px' }}>{item.rate}</td>
+                      <td style={{ border: '1px solid #333', padding: '8px' }}>{item.quantity}</td>
+                      <td style={{ border: '1px solid #333', padding: '8px' }}>{(Number(item.rate) * Number(item.quantity)) || 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <table style={{ width: '100%', border: '1px solid #333', marginTop: '16px' }}>
+                <tbody>
+                  <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Items Subtotal</td><td style={{ border: '1px solid #333', padding: '8px' }}>{itemsSubtotal}</td></tr>
                   <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Discount</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.discount}</td></tr>
                   <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Advance</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.advance}</td></tr>
                   <tr><td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>Amount Given</td><td style={{ border: '1px solid #333', padding: '8px' }}>{formData.amountGiven}</td></tr>
@@ -603,10 +786,26 @@ const CustomerOrders = () => {
                         <>
                           <td style={{ border: '1px solid #333', padding: '8px' }}>{record.address}</td>
                           <td style={{ border: '1px solid #333', padding: '8px' }}>{record.number}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px' }}>{record.itemName}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px' }}>{record.itemDescription}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.rate}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'center' }}>{record.quantity}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px' }}>
+                            {record.items ? record.items.map((item, idx) => (
+                              <div key={idx}>{item.itemName}</div>
+                            )) : record.itemName}
+                          </td>
+                          <td style={{ border: '1px solid #333', padding: '8px' }}>
+                            {record.items ? record.items.map((item, idx) => (
+                              <div key={idx}>{item.itemDescription}</div>
+                            )) : record.itemDescription}
+                          </td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>
+                            {record.items ? record.items.map((item, idx) => (
+                              <div key={idx}>{item.rate}</div>
+                            )) : record.rate}
+                          </td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'center' }}>
+                            {record.items ? record.items.map((item, idx) => (
+                              <div key={idx}>{item.quantity}</div>
+                            )) : record.quantity}
+                          </td>
                           <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.discount}</td>
                           <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.advance}</td>
                           <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.amountGiven}</td>
@@ -614,6 +813,7 @@ const CustomerOrders = () => {
                           <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }} className="balance-positive">₹{record.balance}</td>
                         </>
                       ) : (
+
                         <>
                           <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
                           <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
