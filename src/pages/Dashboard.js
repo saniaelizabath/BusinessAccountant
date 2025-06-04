@@ -80,6 +80,10 @@ const Dashboard = () => {
         <Link to="/employeemanagement">
           <button style={{ marginRight: '10px' }}> Employee Management</button>
         </Link>
+
+        <Link to="/monthlyrevenue">
+          <button style={{ marginRight: '10px' }}> Monthly Revenue</button>
+        </Link>
       </div>
 
       <button onClick={handleLogout} style={{ backgroundColor: 'red', color: 'white' }}>

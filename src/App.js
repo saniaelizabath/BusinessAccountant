@@ -10,6 +10,7 @@ import PrivateRoute from './components/PrivateRoute';
 import Stock from './pages/Stock';
 import RawMaterials from './pages/RawMaterials';
 import EmployeeManagement from './pages/EmployeeManagement';
+import MonthlyRevenue from './pages/MonthlyRevenue';
 function App() {
   return (
     <Router>
@@ -63,6 +64,15 @@ function App() {
           element={
             <PrivateRoute>
               <EmployeeManagement />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/monthlyrevenue" 
+          element={
+            <PrivateRoute>
+              <MonthlyRevenue />
             </PrivateRoute>
           }
         />
