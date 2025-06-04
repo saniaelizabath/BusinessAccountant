@@ -68,6 +68,18 @@ const Dashboard = () => {
         <Link to="/orders">
           <button style={{ marginRight: '10px' }}>📋 Customer Orders</button>
         </Link>
+
+        <Link to="/stock">
+          <button style={{ marginRight: '10px' }}>📦 Stock Management</button>
+        </Link>
+
+        <Link to="/rawmaterials">
+          <button style={{ marginRight: '10px' }}> Raw Materials Management</button>
+        </Link>
+
+        <Link to="/employeemanagement">
+          <button style={{ marginRight: '10px' }}> Employee Management</button>
+        </Link>
       </div>
 
       <button onClick={handleLogout} style={{ backgroundColor: 'red', color: 'white' }}>
