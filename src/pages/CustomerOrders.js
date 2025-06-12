@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
-import { collection, addDoc, getDocs, query, where, orderBy, writeBatch, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, writeBatch, doc, updateDoc } from 'firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import { Typography, Box, Grid, TextField, Button, Card, CardContent, Divider, IconButton, Collapse } from '@mui/material';
 import { Print, Visibility, VisibilityOff, Receipt, TableChart, Clear } from '@mui/icons-material';
@@ -19,7 +18,8 @@ const CustomerOrders = () => {
   const [showCustomerBill, setShowCustomerBill] = useState(false);
   const printRef = useRef();
   const recordsPrintRef = useRef();
-
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState({
     orderDate: '',
     customerName: '',
@@ -85,7 +85,6 @@ const CustomerOrders = () => {
     fetchPayments();
   }, [userId]);
 
-
   const handleChange = e => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -118,6 +117,7 @@ const CustomerOrders = () => {
     
     setItems(newItems);
   };
+
   const handleSubmit = async e => {
     e.preventDefault();
     if (!userId) return;
@@ -139,26 +139,78 @@ const CustomerOrders = () => {
         rate: Number(item.rate),
         quantity: Number(item.quantity)
       })),
-      discount: Number(formData.discount),
-      advance: Number(formData.advance),
-      amountGiven: Number(formData.amountGiven),
+      discount: Number(formData.discount) || 0,
+      advance: Number(formData.advance) || 0,
+      amountGiven: Number(formData.amountGiven) || 0,
       itemsSubtotal,
       totalAmount: calculatedTotal,
       balance: calculatedBalance,
-      timestamp: Timestamp.now()
+      timestamp: isEditMode ? editingOrder.timestamp : Timestamp.now()
     };
 
     try {
-      const ordersRef = collection(db, 'users', userId, 'customerOrders');
-      await addDoc(ordersRef, orderData);
+      if (isEditMode && editingOrder) {
+        // Update existing order
+        const orderDocRef = doc(db, 'users', userId, 'customerOrders', editingOrder.id);
+        await updateDoc(orderDocRef, orderData);
+        alert('Order updated successfully!');
+        
+        // Reset edit mode but don't clear the form
+        setIsEditMode(false);
+        setEditingOrder(null);
+      } else {
+        // Add new order
+        const ordersRef = collection(db, 'users', userId, 'customerOrders');
+        await addDoc(ordersRef, orderData);
+        alert('Order added successfully!');
+      }
       
+      // Only fetch updated orders, don't clear the form
       fetchOrders();
-      alert('Order added successfully!');
     } catch (error) {
-      console.error('Error adding order:', error);
+      console.error('Error saving order:', error);
+      alert(`Error saving order: ${error.message}. Please try again.`);
     }
   };
-  // Function to clear customer bill data
+
+  const handleEdit = (order) => {
+    setEditingOrder(order);
+    setIsEditMode(true);
+    
+    // Populate form with order data - FIXED: Handle undefined values
+    setFormData({
+      orderDate: order.orderDate || '',
+      customerName: order.customerName || '',
+      address: order.address || '',
+      number: order.number || '',
+      discount: (order.discount || 0).toString(),
+      advance: (order.advance || 0).toString(),
+      amountGiven: (order.amountGiven || 0).toString()
+    });
+    
+    // Populate items - FIXED: Handle case where items might be undefined or empty
+    if (order.items && order.items.length > 0) {
+      setItems(order.items.map(item => ({
+        itemName: item.itemName || '',
+        itemDescription: item.itemDescription || '',
+        rate: (item.rate || 0).toString(),
+        quantity: (item.quantity || 0).toString()
+      })));
+    } else {
+      // Fallback for old data structure or missing items
+      setItems([{
+        itemName: order.itemName || '',
+        itemDescription: order.itemDescription || '',
+        rate: (order.rate || 0).toString(),
+        quantity: (order.quantity || 0).toString()
+      }]);
+    }
+    
+    // Show customer bill section for editing
+    setShowCustomerBill(true);
+  };
+
+  // Clear form function - only called when clear button is clicked
   const clearCustomerBill = () => {
     setFormData({
       orderDate: '',
@@ -175,13 +227,22 @@ const CustomerOrders = () => {
       rate: '',
       quantity: ''
     }]);
+    
+    // Reset edit mode
+    setIsEditMode(false);
+    setEditingOrder(null);
+    setShowCustomerBill(false);
   };
 
-  const itemsSubtotal = items.reduce((sum, item) => 
-    sum + (Number(item.rate) * Number(item.quantity) || 0), 0
-  );
-  const calculatedTotal = itemsSubtotal - (Number(formData.discount) + Number(formData.advance));
-  const calculatedBalance = calculatedTotal - Number(formData.amountGiven);
+  // FIXED: Handle division by zero and NaN values
+  const itemsSubtotal = items.reduce((sum, item) => {
+    const rate = Number(item.rate) || 0;
+    const quantity = Number(item.quantity) || 0;
+    return sum + (rate * quantity);
+  }, 0);
+
+  const calculatedTotal = itemsSubtotal - ((Number(formData.discount) || 0) + (Number(formData.advance) || 0));
+  const calculatedBalance = calculatedTotal - (Number(formData.amountGiven) || 0);
   
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;
@@ -377,7 +438,7 @@ const CustomerOrders = () => {
       <Card sx={{ mb: 4, boxShadow: 2 }}>
         <CardContent>
           <Typography variant="h5" sx={{ mb: 3, color: '#1976d2', fontWeight: 'bold' }}>
-            Add Customer Order
+            {isEditMode ? 'Edit Customer Order' : 'Add Customer Order'}
           </Typography>
 
           <form onSubmit={handleSubmit}>
@@ -515,9 +576,21 @@ const CustomerOrders = () => {
                   color="primary" 
                   sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
                 >
-                  Add Order
+                  {isEditMode ? 'Update Order' : 'Add Order'}
                 </Button>
-                
+                {isEditMode && (
+                  <Button 
+                    variant="outlined" 
+                    color="secondary" 
+                    onClick={() => {
+                      setIsEditMode(false);
+                      setEditingOrder(null);
+                    }}
+                    sx={{ px: 3, py: 1.5 }}
+                  >
+                    Cancel Edit
+                  </Button>
+                )}
                 <Button 
                   variant="outlined" 
                   color="secondary" 
@@ -768,6 +841,7 @@ const CustomerOrders = () => {
                     <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Amount Given</th>
                     <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Total</th>
                     <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Balance/Payment</th>
+                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -811,6 +885,17 @@ const CustomerOrders = () => {
                           <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.amountGiven}</td>
                           <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{record.totalAmount}</td>
                           <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }} className="balance-positive">₹{record.balance}</td>
+                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              color="primary"
+                              size="small"
+                              onClick={() => handleEdit(record)}
+                              sx={{ fontSize: '12px', padding: '4px 8px' }}
+                            >
+                              Edit
+                            </Button>
+                          </td>
                         </>
                       ) : (
 

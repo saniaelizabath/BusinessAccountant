@@ -11,6 +11,7 @@ import Stock from './pages/Stock';
 import RawMaterials from './pages/RawMaterials';
 import EmployeeManagement from './pages/EmployeeManagement';
 import MonthlyRevenue from './pages/MonthlyRevenue';
+import Chatbot from './components/Chatbot';
 function App() {
   return (
     <Router>
@@ -73,6 +74,15 @@ function App() {
           element={
             <PrivateRoute>
               <MonthlyRevenue />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/Chatbot" 
+          element={
+            <PrivateRoute>
+              <Chatbot />
             </PrivateRoute>
           }
         />
