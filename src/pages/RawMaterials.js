@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
 import {
@@ -29,6 +27,149 @@ function RawMaterials() {
   const [showUsages, setShowUsages] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [editingUsage, setEditingUsage] = useState(null);
+
+  const styles = {
+    container: {
+      minHeight: '100vh',
+      background: '#f8fafc',
+      padding: '40px',
+    },
+    contentWrapper: {
+      maxWidth: '1200px',
+      margin: '0 auto',
+      background: '#ffffff',
+      borderRadius: '15px',
+      padding: '30px',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
+    },
+    header: {
+      marginBottom: '30px',
+      borderBottom: '1px solid #e5e7eb',
+      paddingBottom: '20px',
+    },
+    title: {
+      fontSize: '2.2rem',
+      marginBottom: '20px',
+      color: '#2563eb',
+      fontWeight: '600',
+    },
+    subtitle: {
+      fontSize: '1.5rem',
+      marginBottom: '15px',
+      color: '#1e40af',
+      fontWeight: '500',
+    },
+    section: {
+      marginBottom: '40px',
+      background: '#ffffff',
+      borderRadius: '12px',
+      padding: '25px',
+      border: '1px solid #e5e7eb',
+    },
+    form: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '20px',
+    },
+    inputGroup: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: '15px',
+      alignItems: 'center',
+      padding: '15px',
+      background: '#f8fafc',
+      borderRadius: '8px',
+      border: '1px solid #e5e7eb',
+    },
+    input: {
+      width: '100%',
+      padding: '12px',
+      borderRadius: '6px',
+      border: '1px solid #d1d5db',
+      background: '#fff',
+      color: '#333',
+      fontSize: '0.95rem',
+      transition: 'border-color 0.2s ease',
+    },
+    button: {
+      padding: '12px 24px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '0.95rem',
+      fontWeight: '500',
+      transition: 'all 0.2s ease',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px',
+      backgroundColor: '#fff',
+      color: '#2563eb',
+      border: '1px solid #2563eb',
+    },
+    primaryButton: {
+      backgroundColor: '#2563eb',
+      color: 'white',
+      border: 'none',
+    },
+    dangerButton: {
+      backgroundColor: '#ef4444',
+      color: 'white',
+      border: 'none',
+    },
+    table: {
+      width: '100%',
+      borderCollapse: 'separate',
+      borderSpacing: '0',
+      marginTop: '20px',
+    },
+    tableHeader: {
+      background: '#f8fafc',
+      color: '#4b5563',
+      padding: '15px',
+      textAlign: 'left',
+      fontSize: '0.95rem',
+      fontWeight: '600',
+      borderBottom: '2px solid #e5e7eb',
+    },
+    tableCell: {
+      padding: '15px',
+      color: '#333',
+      borderBottom: '1px solid #e5e7eb',
+      fontSize: '0.95rem',
+    },
+    message: {
+      padding: '15px',
+      borderRadius: '8px',
+      marginBottom: '20px',
+      backgroundColor: '#f0f9ff',
+      border: '1px solid #bae6fd',
+      color: '#0369a1',
+    },
+    buttonGroup: {
+      display: 'flex',
+      gap: '10px',
+      marginTop: '20px',
+    },
+    stockCard: {
+      background: '#f8fafc',
+      borderRadius: '8px',
+      padding: '20px',
+      marginBottom: '10px',
+      border: '1px solid #e5e7eb',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    materialName: {
+      fontSize: '1.1rem',
+      fontWeight: '500',
+      color: '#2563eb',
+    },
+    quantity: {
+      fontSize: '1rem',
+      color: '#059669',
+      fontWeight: '500',
+    },
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -167,263 +308,340 @@ function RawMaterials() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto font-sans">
-      <h2 className="text-2xl font-bold mb-4">Raw Material Management</h2>
+    <div style={styles.container}>
+      <div style={styles.contentWrapper}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Raw Material Management</h1>
+        </div>
 
-      {message && <div className="text-green-600 mb-4">{message}</div>}
+        {message && <div style={styles.message}>{message}</div>}
 
-      {/* Add Purchases */}
-      <div className="mb-10">
-        <h3 className="text-xl font-semibold mb-2">Add Raw Material Purchases</h3>
-        <form onSubmit={handleAddPurchase} className="space-y-4">
-          <input
-            type="date"
-            value={purchaseDate}
-            onChange={(e) => setPurchaseDate(e.target.value)}
-            className="border p-2"
-            required
-          />
-          {purchaseItems.map((item, index) => (
-            <div key={index} className="grid grid-cols-4 gap-2 items-center">
-              <input type="text" placeholder="Material" value={item.material} onChange={(e) => handlePurchaseChange(index, 'material', e.target.value)} className="border p-2" required />
-              <input type="number" placeholder="Quantity" value={item.quantity} onChange={(e) => handlePurchaseChange(index, 'quantity', e.target.value)} className="border p-2" required />
-              <input type="number" placeholder="Price" value={item.price} onChange={(e) => handlePurchaseChange(index, 'price', e.target.value)} className="border p-2" required />
-              <button type="button" onClick={() => removePurchaseRow(index)} className="text-red-500">Remove</button>
+        {/* Add Purchases Section */}
+        <div style={styles.section}>
+          <h2 style={styles.subtitle}>Add Raw Material Purchases</h2>
+          <form onSubmit={handleAddPurchase} style={styles.form}>
+            <input
+              type="date"
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+              style={styles.input}
+              required
+            />
+            {purchaseItems.map((item, index) => (
+              <div key={index} style={styles.inputGroup}>
+                <input 
+                  type="text" 
+                  placeholder="Material"
+                  value={item.material}
+                  onChange={(e) => handlePurchaseChange(index, 'material', e.target.value)}
+                  style={styles.input}
+                  required 
+                />
+                <input 
+                  type="number"
+                  placeholder="Quantity"
+                  value={item.quantity}
+                  onChange={(e) => handlePurchaseChange(index, 'quantity', e.target.value)}
+                  style={styles.input}
+                  required 
+                />
+                <input 
+                  type="number"
+                  placeholder="Price"
+                  value={item.price}
+                  onChange={(e) => handlePurchaseChange(index, 'price', e.target.value)}
+                  style={styles.input}
+                  required 
+                />
+                <button 
+                  type="button"
+                  onClick={() => removePurchaseRow(index)}
+                  style={{...styles.button, ...styles.dangerButton}}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <div style={styles.buttonGroup}>
+              <button 
+                type="button"
+                onClick={addPurchaseRow}
+                style={styles.button}
+              >
+                + Add More
+              </button>
+              <button 
+                type="submit"
+                style={{...styles.button, ...styles.primaryButton}}
+              >
+                Add Purchases
+              </button>
             </div>
-          ))}
-          <button type="button" onClick={addPurchaseRow} className="bg-blue-500 text-white px-3 py-1 rounded">+ Add More</button>
-          <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded mt-2">Add Purchases</button>
-        </form>
-      </div>
+          </form>
+        </div>
 
-      {/* Add Usages */}
-      <div className="mb-10">
-        <h3 className="text-xl font-semibold mb-2">Enter Raw Material Usage</h3>
-        <form onSubmit={handleAddUsage} className="space-y-4">
-          <input type="date" value={usageDate} onChange={(e) => setUsageDate(e.target.value)} className="border p-2" required />
-          {usageItems.map((item, index) => (
-            <div key={index} className="grid grid-cols-3 gap-2 items-center">
-              <input type="text" placeholder="Material" value={item.material} onChange={(e) => handleUsageChange(index, 'material', e.target.value)} className="border p-2" required />
-              <input type="number" placeholder="Quantity Used" value={item.quantity} onChange={(e) => handleUsageChange(index, 'quantity', e.target.value)} className="border p-2" required />
-              <button type="button" onClick={() => removeUsageRow(index)} className="text-red-500">Remove</button>
+        {/* Add Usages Section */}
+        <div style={styles.section}>
+          <h2 style={styles.subtitle}>Enter Raw Material Usage</h2>
+          <form onSubmit={handleAddUsage} style={styles.form}>
+            <input
+              type="date"
+              value={usageDate}
+              onChange={(e) => setUsageDate(e.target.value)}
+              style={styles.input}
+              required
+            />
+            {usageItems.map((item, index) => (
+              <div key={index} style={styles.inputGroup}>
+                <input 
+                  type="text"
+                  placeholder="Material"
+                  value={item.material}
+                  onChange={(e) => handleUsageChange(index, 'material', e.target.value)}
+                  style={styles.input}
+                  required 
+                />
+                <input 
+                  type="number"
+                  placeholder="Quantity Used"
+                  value={item.quantity}
+                  onChange={(e) => handleUsageChange(index, 'quantity', e.target.value)}
+                  style={styles.input}
+                  required 
+                />
+                <button 
+                  type="button"
+                  onClick={() => removeUsageRow(index)}
+                  style={{...styles.button, ...styles.dangerButton}}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <div style={styles.buttonGroup}>
+              <button 
+                type="button"
+                onClick={addUsageRow}
+                style={styles.button}
+              >
+                + Add More
+              </button>
+              <button 
+                type="submit"
+                style={{...styles.button, ...styles.primaryButton}}
+              >
+                Record Usage
+              </button>
             </div>
-          ))}
-          <button type="button" onClick={addUsageRow} className="bg-blue-500 text-white px-3 py-1 rounded">+ Add More</button>
-          <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded mt-2">Record Usage</button>
-        </form>
-      </div>
+          </form>
+        </div>
 
-      {/* Available Stock */}
-      <div>
-        <h3 className="text-xl font-semibold mb-2">Available Raw Material Stock</h3>
-        {Object.keys(availableMaterials).length === 0 ? (
-          <p>No data available.</p>
-        ) : (
-          <table className="table-auto w-full border border-collapse border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border px-4 py-2">Material</th>
-                <th className="border px-4 py-2">Available Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(availableMaterials).map(([name, qty]) => (
-                <tr key={name}>
-                  <td className="border px-4 py-2">{name}</td>
-                  <td className="border px-4 py-2">{qty}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Available Stock Section */}
+        <div style={styles.section}>
+          <h2 style={styles.subtitle}>Available Raw Material Stock</h2>
+          {Object.keys(availableMaterials).length === 0 ? (
+            <div style={styles.message}>No data available.</div>
+          ) : (
+            Object.entries(availableMaterials).map(([name, qty]) => (
+              <div key={name} style={styles.stockCard}>
+                <span style={styles.materialName}>{name}</span>
+                <span style={styles.quantity}>{qty} units</span>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* View Records Section */}
+        <div style={styles.buttonGroup}>
+          <button
+            style={{...styles.button, ...(showPurchases ? styles.primaryButton : {})}}
+            onClick={() => {
+              fetchAllEntries();
+              setShowPurchases(!showPurchases);
+              setShowUsages(false);
+            }}
+          >
+            {showPurchases ? "Hide Purchases" : "Show All Purchases"}
+          </button>
+
+          <button
+            style={{...styles.button, ...(showUsages ? styles.primaryButton : {})}}
+            onClick={() => {
+              fetchAllEntries();
+              setShowUsages(!showUsages);
+              setShowPurchases(false);
+            }}
+          >
+            {showUsages ? "Hide Usages" : "Show All Usages"}
+          </button>
+        </div>
+
+        {showPurchases && (
+          <div style={styles.section}>
+            <h2 style={styles.subtitle}>All Purchases</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.tableHeader}>Material</th>
+                    <th style={styles.tableHeader}>Quantity</th>
+                    <th style={styles.tableHeader}>Price</th>
+                    <th style={styles.tableHeader}>Date</th>
+                    <th style={styles.tableHeader}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allPurchases.map(p => (
+                    <tr key={p.id}>
+                      {editingPurchase?.id === p.id ? (
+                        <>
+                          <td style={styles.tableCell}>
+                            <input 
+                              value={editingPurchase.material}
+                              onChange={(e) => setEditingPurchase({ ...editingPurchase, material: e.target.value })}
+                              style={styles.input}
+                            />
+                          </td>
+                          <td style={styles.tableCell}>
+                            <input 
+                              value={editingPurchase.quantity}
+                              onChange={(e) => setEditingPurchase({ ...editingPurchase, quantity: e.target.value })}
+                              style={styles.input}
+                              type="number"
+                            />
+                          </td>
+                          <td style={styles.tableCell}>
+                            <input 
+                              value={editingPurchase.price}
+                              onChange={(e) => setEditingPurchase({ ...editingPurchase, price: e.target.value })}
+                              style={styles.input}
+                              type="number"
+                            />
+                          </td>
+                          <td style={styles.tableCell}>
+                            {p.date?.toDate ? p.date.toDate().toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td style={styles.tableCell}>
+                            <div style={styles.buttonGroup}>
+                              <button 
+                                onClick={updatePurchase}
+                                style={{...styles.button, ...styles.primaryButton}}
+                              >
+                                Save
+                              </button>
+                              <button 
+                                onClick={() => setEditingPurchase(null)}
+                                style={{...styles.button, ...styles.dangerButton}}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td style={{...styles.tableCell, fontWeight: '500'}}>{p.material}</td>
+                          <td style={styles.tableCell}>{p.quantity}</td>
+                          <td style={styles.tableCell}>₹{p.price}</td>
+                          <td style={styles.tableCell}>
+                            {p.date?.toDate ? p.date.toDate().toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td style={styles.tableCell}>
+                            <button 
+                              onClick={() => setEditingPurchase(p)}
+                              style={{...styles.button, ...styles.primaryButton}}
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {showUsages && (
+          <div style={styles.section}>
+            <h2 style={styles.subtitle}>All Usages</h2>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.tableHeader}>Material</th>
+                    <th style={styles.tableHeader}>Quantity Used</th>
+                    <th style={styles.tableHeader}>Date</th>
+                    <th style={styles.tableHeader}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allUsages.map(u => (
+                    <tr key={u.id}>
+                      {editingUsage?.id === u.id ? (
+                        <>
+                          <td style={styles.tableCell}>
+                            <input 
+                              value={editingUsage.material}
+                              onChange={(e) => setEditingUsage({ ...editingUsage, material: e.target.value })}
+                              style={styles.input}
+                            />
+                          </td>
+                          <td style={styles.tableCell}>
+                            <input 
+                              value={editingUsage.quantity}
+                              onChange={(e) => setEditingUsage({ ...editingUsage, quantity: e.target.value })}
+                              style={styles.input}
+                              type="number"
+                            />
+                          </td>
+                          <td style={styles.tableCell}>
+                            {u.date?.toDate ? u.date.toDate().toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td style={styles.tableCell}>
+                            <div style={styles.buttonGroup}>
+                              <button 
+                                onClick={updateUsage}
+                                style={{...styles.button, ...styles.primaryButton}}
+                              >
+                                Save
+                              </button>
+                              <button 
+                                onClick={() => setEditingUsage(null)}
+                                style={{...styles.button, ...styles.dangerButton}}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td style={{...styles.tableCell, fontWeight: '500'}}>{u.material}</td>
+                          <td style={styles.tableCell}>{u.quantity}</td>
+                          <td style={styles.tableCell}>
+                            {u.date?.toDate ? u.date.toDate().toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td style={styles.tableCell}>
+                            <button 
+                              onClick={() => setEditingUsage(u)}
+                              style={{...styles.button, ...styles.primaryButton}}
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </div>
-
-      {/* Show all entries */}
-      <div className="mt-8">
-        <button
-          className="bg-yellow-500 text-white px-4 py-2 rounded mr-4"
-          onClick={() => {
-            fetchAllEntries();
-            setShowPurchases(!showPurchases);
-            setShowUsages(false);
-          }}
-        >
-          {showPurchases ? "Hide Purchases" : "Show All Purchases"}
-        </button>
-
-        <button
-          className="bg-yellow-500 text-white px-4 py-2 rounded"
-          onClick={() => {
-            fetchAllEntries();
-            setShowUsages(!showUsages);
-            setShowPurchases(false);
-          }}
-        >
-          {showUsages ? "Hide Usages" : "Show All Usages"}
-        </button>
-      </div>
-
-      {showPurchases && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold mb-2">All Purchases</h3>
-          <div className="overflow-x-auto">
-            <table className="table-auto w-full border border-collapse border-gray-300">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border px-4 py-2 text-left">Material</th>
-                  <th className="border px-4 py-2 text-left">Quantity</th>
-                  <th className="border px-4 py-2 text-left">Price</th>
-                  <th className="border px-4 py-2 text-left">Date</th>
-                  <th className="border px-4 py-2 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allPurchases.map(p => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    {editingPurchase?.id === p.id ? (
-                      <>
-                        <td className="border px-4 py-2">
-                          <input 
-                            value={editingPurchase.material} 
-                            onChange={(e) => setEditingPurchase({ ...editingPurchase, material: e.target.value })} 
-                            className="border p-1 w-full rounded" 
-                          />
-                        </td>
-                        <td className="border px-4 py-2">
-                          <input 
-                            value={editingPurchase.quantity} 
-                            onChange={(e) => setEditingPurchase({ ...editingPurchase, quantity: e.target.value })} 
-                            className="border p-1 w-full rounded" 
-                            type="number"
-                          />
-                        </td>
-                        <td className="border px-4 py-2">
-                          <input 
-                            value={editingPurchase.price} 
-                            onChange={(e) => setEditingPurchase({ ...editingPurchase, price: e.target.value })} 
-                            className="border p-1 w-full rounded" 
-                            type="number"
-                          />
-                        </td>
-                        <td className="border px-4 py-2">
-                          {p.date?.toDate ? p.date.toDate().toLocaleDateString() : 'N/A'}
-                        </td>
-                        <td className="border px-4 py-2 text-center">
-                          <button 
-                            onClick={updatePurchase} 
-                            className="bg-green-600 text-white px-2 py-1 rounded text-sm mr-2"
-                          >
-                            Save
-                          </button>
-                          <button 
-                            onClick={() => setEditingPurchase(null)} 
-                            className="bg-red-500 text-white px-2 py-1 rounded text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="border px-4 py-2 font-medium">{p.material}</td>
-                        <td className="border px-4 py-2">{p.quantity}</td>
-                        <td className="border px-4 py-2">${p.price}</td>
-                        <td className="border px-4 py-2">
-                          {p.date?.toDate ? p.date.toDate().toLocaleDateString() : 'N/A'}
-                        </td>
-                        <td className="border px-4 py-2 text-center">
-                          <button 
-                            onClick={() => setEditingPurchase(p)} 
-                            className="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600"
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {showUsages && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold mb-2">All Usages</h3>
-          <div className="overflow-x-auto">
-            <table className="table-auto w-full border border-collapse border-gray-300">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border px-4 py-2 text-left">Material</th>
-                  <th className="border px-4 py-2 text-left">Quantity Used</th>
-                  <th className="border px-4 py-2 text-left">Date</th>
-                  <th className="border px-4 py-2 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allUsages.map(u => (
-                  <tr key={u.id} className="hover:bg-gray-50">
-                    {editingUsage?.id === u.id ? (
-                      <>
-                        <td className="border px-4 py-2">
-                          <input 
-                            value={editingUsage.material} 
-                            onChange={(e) => setEditingUsage({ ...editingUsage, material: e.target.value })} 
-                            className="border p-1 w-full rounded" 
-                          />
-                        </td>
-                        <td className="border px-4 py-2">
-                          <input 
-                            value={editingUsage.quantity} 
-                            onChange={(e) => setEditingUsage({ ...editingUsage, quantity: e.target.value })} 
-                            className="border p-1 w-full rounded" 
-                            type="number"
-                          />
-                        </td>
-                        <td className="border px-4 py-2">
-                          {u.date?.toDate ? u.date.toDate().toLocaleDateString() : 'N/A'}
-                        </td>
-                        <td className="border px-4 py-2 text-center">
-                          <button 
-                            onClick={updateUsage} 
-                            className="bg-green-600 text-white px-2 py-1 rounded text-sm mr-2"
-                          >
-                            Save
-                          </button>
-                          <button 
-                            onClick={() => setEditingUsage(null)} 
-                            className="bg-red-500 text-white px-2 py-1 rounded text-sm"
-                          >
-                            Cancel
-                          </button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="border px-4 py-2 font-medium">{u.material}</td>
-                        <td className="border px-4 py-2">{u.quantity}</td>
-                        <td className="border px-4 py-2">
-                          {u.date?.toDate ? u.date.toDate().toLocaleDateString() : 'N/A'}
-                        </td>
-                        <td className="border px-4 py-2 text-center">
-                          <button 
-                            onClick={() => setEditingUsage(u)} 
-                            className="bg-blue-500 text-white px-2 py-1 rounded text-sm hover:bg-blue-600"
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -13,241 +13,6 @@
 //   const [userId, setUserId] = useState(null);
 //   const [products, setProducts] = useState([]);
 //   const [stockEntries, setStockEntries] = useState([]);
-//   const [entries, setEntries] = useState([
-//     { date: '', itemName: '', itemDescription: '', rate: 0, quantity: 1 }
-//   ]);
-//   const [editingId, setEditingId] = useState(null);
-
-//   useEffect(() => {
-//     auth.onAuthStateChanged((user) => {
-//       if (user) {
-//         setUserId(user.uid);
-//         fetchProducts(user.uid);
-//         fetchStock(user.uid);
-//       }
-//     });
-//   }, []);
-
-//   const fetchProducts = async (uid) => {
-//     const productsRef = collection(db, 'users', uid, 'products');
-//     const snapshot = await getDocs(productsRef);
-//     const productList = snapshot.docs.map(doc => ({
-//       id: doc.id,
-//       ...doc.data()
-//     }));
-//     setProducts(productList);
-//   };
-
-//   const fetchStock = async (uid) => {
-//     const stockRef = collection(db, 'users', uid, 'stock');
-//     const snapshot = await getDocs(stockRef);
-//     const stockList = snapshot.docs.map(doc => ({
-//       id: doc.id,
-//       ...doc.data()
-//     }));
-//     setStockEntries(stockList);
-//   };
-
-//   const handleEntryChange = (index, field, value) => {
-//     const updated = [...entries];
-//     updated[index][field] = field === 'rate' || field === 'quantity' ? Number(value) : value;
-
-//     const currentEntry = updated[index];
-//     const matched = products.find(
-//       (p) =>
-//         p.itemName === currentEntry.itemName &&
-//         p.itemDescription === currentEntry.itemDescription
-//     );
-
-//     if (matched) {
-//       updated[index].rate = matched.rate;
-//     }
-
-//     setEntries(updated);
-//   };
-
-//   const addNewEntryRow = () => {
-//     setEntries([
-//       ...entries,
-//       { date: '', itemName: '', itemDescription: '', rate: 0, quantity: 1 }
-//     ]);
-//   };
-
-//   const handleSubmit = async () => {
-//     if (!userId) return;
-
-//     const stockRef = collection(db, 'users', userId, 'stock');
-
-//     for (const entry of entries) {
-//       const dataToSave = {
-//         ...entry,
-//         rate: Number(entry.rate),
-//         quantity: Number(entry.quantity)
-//       };
-
-//       if (editingId) {
-//         const docRef = doc(stockRef, editingId);
-//         await updateDoc(docRef, dataToSave);
-//       } else {
-//         await addDoc(stockRef, dataToSave);
-//       }
-//     }
-
-//     setEditingId(null);
-//     setEntries([{ date: '', itemName: '', itemDescription: '', rate: 0, quantity: 1 }]);
-//     fetchStock(userId);
-//   };
-
-//   const handleEdit = (entry) => {
-//     setEntries([entry]);
-//     setEditingId(entry.id || null);
-//   };
-
-//   const handleDelete = async (id) => {
-//     if (!userId) return;
-//     await deleteDoc(doc(db, 'users', userId, 'stock', id));
-//     fetchStock(userId);
-//   };
-
-//   const totalWorth = stockEntries.reduce((sum, e) => sum + (e.rate * e.quantity), 0);
-
-//   const uniqueItemNames = [...new Set(products.map(p => p.itemName))];
-
-//   return (
-//     <div style={{ padding: '20px' }}>
-//       <h2>Stock Management</h2>
-
-//       {entries.map((entry, index) => {
-//         // Filter descriptions matching selected itemName
-//         const matchingDescriptions = [
-//           ...new Set(
-//             products
-//               .filter(p => p.itemName === entry.itemName)
-//               .map(p => p.itemDescription)
-//           )
-//         ];
-
-//         return (
-//           <div key={index} style={{ marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid #ccc' }}>
-//             <input
-//               type="date"
-//               value={entry.date}
-//               onChange={e => handleEntryChange(index, 'date', e.target.value)}
-//             /><br /><br />
-
-//             <input
-//               type="text"
-//               placeholder="Item Name"
-//               value={entry.itemName}
-//               onChange={e => handleEntryChange(index, 'itemName', e.target.value)}
-//               list={`itemNames-${index}`}
-//             />
-//             <datalist id={`itemNames-${index}`}>
-//               {uniqueItemNames.map((name, i) => (
-//                 <option key={i} value={name} />
-//               ))}
-//             </datalist>
-//             <br /><br />
-
-//             <input
-//               type="text"
-//               placeholder="Description"
-//               value={entry.itemDescription}
-//               onChange={e => handleEntryChange(index, 'itemDescription', e.target.value)}
-//               list={`descriptions-${index}`}
-//             />
-//             <datalist id={`descriptions-${index}`}>
-//               {matchingDescriptions.map((desc, i) => (
-//                 <option key={i} value={desc} />
-//               ))}
-//             </datalist>
-//             <br /><br />
-
-//             <input
-//               type="number"
-//               placeholder="Rate"
-//               value={entry.rate}
-//               onChange={e => handleEntryChange(index, 'rate', e.target.value)}
-//             />
-//             <br /><br />
-
-//             <input
-//               type="number"
-//               placeholder="Quantity"
-//               value={entry.quantity}
-//               onChange={e => handleEntryChange(index, 'quantity', e.target.value)}
-//             />
-//           </div>
-//         );
-//       })}
-
-//       <button onClick={addNewEntryRow}>➕ Add Another Entry</button>
-//       <br /><br />
-//       <button onClick={handleSubmit}>
-//         {editingId ? 'Update Stock' : 'Submit Stock Entries'}
-//       </button>
-
-//       <hr />
-
-//       <h3>Stock Entries</h3>
-//       {stockEntries.length === 0 ? (
-//         <p>No stock added yet.</p>
-//       ) : (
-//         <table border={1} cellPadding={10}>
-//           <thead>
-//             <tr>
-//               <th>Date</th>
-//               <th>Item</th>
-//               <th>Description</th>
-//               <th>Rate</th>
-//               <th>Quantity</th>
-//               <th>Total</th>
-//               <th>Actions</th>
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {stockEntries.map((s, idx) => (
-//               <tr key={idx}>
-//                 <td>{s.date}</td>
-//                 <td>{s.itemName}</td>
-//                 <td>{s.itemDescription}</td>
-//                 <td>₹{s.rate}</td>
-//                 <td>{s.quantity}</td>
-//                 <td>₹{s.rate * s.quantity}</td>
-//                 <td>
-//                   <button onClick={() => handleEdit(s)}>✏ Edit</button>
-//                   <button onClick={() => handleDelete(s.id)}>🗑 Delete</button>
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       )}
-
-//       <h3>Total Worth of Stock: ₹{totalWorth}</h3>
-//     </div>
-//   );
-// }
-
-// export default StockManagement;
-
-
-
-// import React, { useEffect, useState } from 'react';
-// import { db, auth } from '../firebase';
-// import {
-//   collection,
-//   addDoc,
-//   getDocs,
-//   doc,
-//   updateDoc,
-//   deleteDoc
-// } from 'firebase/firestore';
-
-// function StockManagement() {
-//   const [userId, setUserId] = useState(null);
-//   const [products, setProducts] = useState([]);
-//   const [stockEntries, setStockEntries] = useState([]);
 //   const [customerOrders, setCustomerOrders] = useState([]);
 //   const [stockSummary, setStockSummary] = useState([]);
 //   const [entries, setEntries] = useState([
@@ -308,18 +73,25 @@
 //   const fetchCustomerOrders = async (uid) => {
 //     try {
 //       // Try both possible collection names
-//       let ordersRef = collection(db, 'users', uid, 'customerorders');
+//       let ordersRef = collection(db, 'users', uid, 'customerOrders');
 //       let snapshot = await getDocs(ordersRef);
       
-//       // If no documents found, try alternative collection name
-//       if (snapshot.empty) {
-//         ordersRef = collection(db, 'users', uid, 'orders');
-//         snapshot = await getDocs(ordersRef);
-//       }
+      
       
 //       const ordersList = snapshot.docs.map(doc => {
 //         const data = doc.data();
-//         console.log('Raw order data:', data); // Debug log
+//         console.log('=== RAW ORDER DATA ===');
+//         console.log('Document ID:', doc.id);
+//         console.log('Full data object:', data);
+//         console.log('Data keys:', Object.keys(data));
+        
+//         // Log potential item arrays
+//         if (data.items) console.log('data.items:', data.items);
+//         if (data.orderItems) console.log('data.orderItems:', data.orderItems);
+//         if (data.products) console.log('data.products:', data.products);
+        
+//         console.log('=== END ORDER DATA ===');
+        
 //         return {
 //           id: doc.id,
 //           ...data
@@ -327,7 +99,7 @@
 //       });
       
 //       setCustomerOrders(ordersList);
-//       console.log('Customer orders fetched:', ordersList);
+//       console.log('Total customer orders fetched:', ordersList.length);
 //     } catch (error) {
 //       console.error('Error fetching customer orders:', error);
 //       setCustomerOrders([]);
@@ -335,9 +107,9 @@
 //   };
 
 //   const calculateStockSummary = () => {
-//     console.log('Calculating stock summary...');
-//     console.log('Stock entries:', stockEntries);
-//     console.log('Customer orders:', customerOrders);
+//     console.log('=== CALCULATING STOCK SUMMARY ===');
+//     console.log('Stock entries count:', stockEntries.length);
+//     console.log('Customer orders count:', customerOrders.length);
 
 //     // Group stock entries by itemName and itemDescription
 //     const productionStock = {};
@@ -360,28 +132,56 @@
 //       }
 //     });
 
+//     console.log('Production stock:', productionStock);
+
 //     // Calculate sold quantities from customer orders
 //     const soldStock = {};
     
-//     customerOrders.forEach(order => {
+//     customerOrders.forEach((order, orderIndex) => {
+//       console.log(`\n--- Processing Order ${orderIndex + 1} ---`);
+//       console.log('Order ID:', order.id);
+//       console.log('Order object keys:', Object.keys(order));
+      
 //       // Handle different possible structures of order data
-//       // Check for various possible item array names
 //       let items = [];
       
+//       // Check various possible locations for items
 //       if (order.items && Array.isArray(order.items)) {
 //         items = order.items;
+//         console.log('Found items in order.items:', items);
 //       } else if (order.orderItems && Array.isArray(order.orderItems)) {
 //         items = order.orderItems;
+//         console.log('Found items in order.orderItems:', items);
 //       } else if (order.products && Array.isArray(order.products)) {
 //         items = order.products;
-//       } else if (Array.isArray(order)) {
-//         // In case the order itself is an array
-//         items = order;
+//         console.log('Found items in order.products:', items);
+//       } else {
+//         // Check if the items might be stored as individual properties
+//         console.log('No array found, checking for individual item properties...');
+        
+//         // Sometimes items might be stored as separate fields
+//         const possibleItemFields = Object.keys(order).filter(key => 
+//           key.startsWith('item') || key.includes('Item') || key.includes('product')
+//         );
+//         console.log('Possible item fields:', possibleItemFields);
+        
+//         // Try to reconstruct items from individual fields
+//         if (order.itemName && order.itemDescription) {
+//           items = [{
+//             itemName: order.itemName,
+//             itemDescription: order.itemDescription,
+//             quantity: order.quantity || 1,
+//             rate: order.rate || 0
+//           }];
+//           console.log('Reconstructed single item from order fields:', items);
+//         }
 //       }
       
-//       console.log('Processing order items:', items); // Debug log
+//       console.log(`Processing ${items.length} items from this order:`);
       
-//       items.forEach(item => {
+//       items.forEach((item, itemIndex) => {
+//         console.log(`  Item ${itemIndex + 1}:`, item);
+        
 //         if (item && item.itemName && item.itemDescription) {
 //           const key = `${item.itemName}_${item.itemDescription}`;
 //           if (!soldStock[key]) {
@@ -389,18 +189,23 @@
 //           }
 //           const quantity = Number(item.quantity) || 0;
 //           soldStock[key] += quantity;
-//           console.log(`Added ${quantity} to ${key}, total now: ${soldStock[key]}`); // Debug log
+//           console.log(`    Added ${quantity} to ${key}, total now: ${soldStock[key]}`);
+//         } else {
+//           console.log('    Skipping item - missing name or description:', item);
 //         }
 //       });
 //     });
 
-//     console.log('Sold stock summary:', soldStock); // Debug log
+//     console.log('\n=== FINAL SOLD STOCK SUMMARY ===');
+//     console.log('Sold stock totals:', soldStock);
 
 //     // Combine production and sales data
 //     const summary = Object.keys(productionStock).map(key => {
 //       const production = productionStock[key];
 //       const sold = soldStock[key] || 0;
 //       const remainingStock = production.totalProduced - sold;
+
+//       console.log(`${key}: Produced ${production.totalProduced}, Sold ${sold}, Remaining ${remainingStock}`);
 
 //       return {
 //         itemName: production.itemName,
@@ -417,6 +222,7 @@
 //     Object.keys(soldStock).forEach(key => {
 //       if (!productionStock[key]) {
 //         const [itemName, itemDescription] = key.split('_');
+//         console.log(`Warning: Found sold item not in production: ${key}`);
 //         summary.push({
 //           itemName: itemName || '',
 //           itemDescription: itemDescription || '',
@@ -431,7 +237,8 @@
 
 //     // Sort by item name for better organization
 //     summary.sort((a, b) => a.itemName.localeCompare(b.itemName));
-//     console.log('Final stock summary:', summary); // Debug log
+//     console.log('\n=== FINAL SUMMARY ===');
+//     console.log('Summary items:', summary);
 //     setStockSummary(summary);
 //   };
 
@@ -806,6 +613,13 @@
 
 
 
+
+
+
+
+
+
+
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
 import {
@@ -880,11 +694,8 @@ function StockManagement() {
 
   const fetchCustomerOrders = async (uid) => {
     try {
-      // Try both possible collection names
       let ordersRef = collection(db, 'users', uid, 'customerOrders');
       let snapshot = await getDocs(ordersRef);
-      
-      
       
       const ordersList = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -893,7 +704,6 @@ function StockManagement() {
         console.log('Full data object:', data);
         console.log('Data keys:', Object.keys(data));
         
-        // Log potential item arrays
         if (data.items) console.log('data.items:', data.items);
         if (data.orderItems) console.log('data.orderItems:', data.orderItems);
         if (data.products) console.log('data.products:', data.products);
@@ -934,7 +744,6 @@ function StockManagement() {
         };
       }
       productionStock[key].totalProduced += Number(entry.quantity) || 0;
-      // Keep the most recent date
       if (entry.date > productionStock[key].lastDate) {
         productionStock[key].lastDate = entry.date;
       }
@@ -950,10 +759,8 @@ function StockManagement() {
       console.log('Order ID:', order.id);
       console.log('Order object keys:', Object.keys(order));
       
-      // Handle different possible structures of order data
       let items = [];
       
-      // Check various possible locations for items
       if (order.items && Array.isArray(order.items)) {
         items = order.items;
         console.log('Found items in order.items:', items);
@@ -964,16 +771,13 @@ function StockManagement() {
         items = order.products;
         console.log('Found items in order.products:', items);
       } else {
-        // Check if the items might be stored as individual properties
         console.log('No array found, checking for individual item properties...');
         
-        // Sometimes items might be stored as separate fields
         const possibleItemFields = Object.keys(order).filter(key => 
           key.startsWith('item') || key.includes('Item') || key.includes('product')
         );
         console.log('Possible item fields:', possibleItemFields);
         
-        // Try to reconstruct items from individual fields
         if (order.itemName && order.itemDescription) {
           items = [{
             itemName: order.itemName,
@@ -1038,12 +842,11 @@ function StockManagement() {
           lastDate: '',
           totalProduced: 0,
           totalSold: soldStock[key],
-          remainingStock: -soldStock[key] // Negative indicates oversold
+          remainingStock: -soldStock[key]
         });
       }
     });
 
-    // Sort by item name for better organization
     summary.sort((a, b) => a.itemName.localeCompare(b.itemName));
     console.log('\n=== FINAL SUMMARY ===');
     console.log('Summary items:', summary);
@@ -1054,15 +857,24 @@ function StockManagement() {
     const updated = [...entries];
     updated[index][field] = field === 'rate' || field === 'quantity' ? Number(value) : value;
 
-    const currentEntry = updated[index];
-    const matched = products.find(
-      (p) =>
-        p.itemName === currentEntry.itemName &&
-        p.itemDescription === currentEntry.itemDescription
-    );
+    // If item name changed, clear description and rate, then update suggestions
+    if (field === 'itemName') {
+      updated[index].itemDescription = '';
+      updated[index].rate = 0;
+    }
 
-    if (matched) {
-      updated[index].rate = matched.rate;
+    // If both item name and description are selected, auto-populate rate
+    if (field === 'itemDescription' || (field === 'itemName' && updated[index].itemDescription)) {
+      const currentEntry = updated[index];
+      const matched = products.find(
+        (p) =>
+          p.itemName === currentEntry.itemName &&
+          p.itemDescription === currentEntry.itemDescription
+      );
+
+      if (matched) {
+        updated[index].rate = matched.rate;
+      }
     }
 
     setEntries(updated);
@@ -1137,7 +949,8 @@ function StockManagement() {
   const totalWorth = stockEntries.reduce((sum, e) => sum + (Number(e.rate) * Number(e.quantity)), 0);
   const totalRemainingWorth = stockSummary.reduce((sum, item) => sum + (Number(item.rate) * Number(item.remainingStock)), 0);
 
-  const uniqueItemNames = [...new Set(products.map(p => p.itemName))];
+  // Get unique item names for suggestions
+  const uniqueItemNames = [...new Set(products.map(p => p.itemName))].sort();
 
   const tabStyle = (isActive) => ({
     padding: '10px 20px',
@@ -1200,13 +1013,12 @@ function StockManagement() {
           {/* Entry Form */}
           <h3>Add Stock Entries</h3>
           {entries.map((entry, index) => {
-            const matchingDescriptions = [
-              ...new Set(
-                products
-                  .filter(p => p.itemName === entry.itemName)
-                  .map(p => p.itemDescription)
-              )
-            ];
+            // Get descriptions for the selected item name
+            const matchingDescriptions = products
+              .filter(p => p.itemName === entry.itemName)
+              .map(p => p.itemDescription)
+              .filter((desc, idx, arr) => arr.indexOf(desc) === idx) // Remove duplicates
+              .sort();
 
             return (
               <div key={index} style={{ 
@@ -1235,72 +1047,162 @@ function StockManagement() {
                   </button>
                 )}
 
-                <input
-                  type="date"
-                  value={entry.date}
-                  onChange={e => handleEntryChange(index, 'date', e.target.value)}
-                  required
-                /><br /><br />
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={entry.date}
+                    onChange={e => handleEntryChange(index, 'date', e.target.value)}
+                    style={{ 
+                      width: '100%', 
+                      padding: '8px', 
+                      borderRadius: '4px', 
+                      border: '1px solid #ccc' 
+                    }}
+                    required
+                  />
+                </div>
 
-                <input
-                  type="text"
-                  placeholder="Item Name *"
-                  value={entry.itemName}
-                  onChange={e => handleEntryChange(index, 'itemName', e.target.value)}
-                  list={`itemNames-${index}`}
-                  required
-                />
-                <datalist id={`itemNames-${index}`}>
-                  {uniqueItemNames.map((name, i) => (
-                    <option key={i} value={name} />
-                  ))}
-                </datalist>
-                <br /><br />
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Item Name * {entry.itemName && `(${products.filter(p => p.itemName === entry.itemName).length} variants available)`}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Type or select item name"
+                    value={entry.itemName}
+                    onChange={e => handleEntryChange(index, 'itemName', e.target.value)}
+                    list={`itemNames-${index}`}
+                    style={{ 
+                      width: '100%', 
+                      padding: '8px', 
+                      borderRadius: '4px', 
+                      border: '1px solid #ccc' 
+                    }}
+                    required
+                  />
+                  <datalist id={`itemNames-${index}`}>
+                    {uniqueItemNames.map((name, i) => (
+                      <option key={i} value={name} />
+                    ))}
+                  </datalist>
+                </div>
 
-                <input
-                  type="text"
-                  placeholder="Description *"
-                  value={entry.itemDescription}
-                  onChange={e => handleEntryChange(index, 'itemDescription', e.target.value)}
-                  list={`descriptions-${index}`}
-                  required
-                />
-                <datalist id={`descriptions-${index}`}>
-                  {matchingDescriptions.map((desc, i) => (
-                    <option key={i} value={desc} />
-                  ))}
-                </datalist>
-                <br /><br />
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                    Description * {entry.itemName && matchingDescriptions.length > 0 && `(${matchingDescriptions.length} options available)`}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={entry.itemName ? "Select description for this item" : "First select an item name"}
+                    value={entry.itemDescription}
+                    onChange={e => handleEntryChange(index, 'itemDescription', e.target.value)}
+                    list={`descriptions-${index}`}
+                    disabled={!entry.itemName}
+                    style={{ 
+                      width: '100%', 
+                      padding: '8px', 
+                      borderRadius: '4px', 
+                      border: '1px solid #ccc',
+                      backgroundColor: !entry.itemName ? '#f5f5f5' : 'white'
+                    }}
+                    required
+                  />
+                  <datalist id={`descriptions-${index}`}>
+                    {matchingDescriptions.map((desc, i) => (
+                      <option key={i} value={desc} />
+                    ))}
+                  </datalist>
+                  {entry.itemName && matchingDescriptions.length === 0 && (
+                    <small style={{ color: '#dc3545' }}>
+                      No descriptions found for "{entry.itemName}". You can type a new one.
+                    </small>
+                  )}
+                </div>
 
-                <input
-                  type="number"
-                  placeholder="Rate"
-                  value={entry.rate}
-                  onChange={e => handleEntryChange(index, 'rate', e.target.value)}
-                  step="0.01"
-                />
-                <br /><br />
+                <div style={{ display: 'flex', gap: '15px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                      Rate (₹)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Rate per unit"
+                      value={entry.rate}
+                      onChange={e => handleEntryChange(index, 'rate', e.target.value)}
+                      step="0.01"
+                      style={{ 
+                        width: '100%', 
+                        padding: '8px', 
+                        borderRadius: '4px', 
+                        border: '1px solid #ccc' 
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                      Quantity *
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="Quantity"
+                      value={entry.quantity}
+                      onChange={e => handleEntryChange(index, 'quantity', e.target.value)}
+                      min="1"
+                      style={{ 
+                        width: '100%', 
+                        padding: '8px', 
+                        borderRadius: '4px', 
+                        border: '1px solid #ccc' 
+                      }}
+                      required
+                    />
+                  </div>
+                </div>
 
-                <input
-                  type="number"
-                  placeholder="Quantity *"
-                  value={entry.quantity}
-                  onChange={e => handleEntryChange(index, 'quantity', e.target.value)}
-                  min="1"
-                  required
-                />
+                {entry.rate > 0 && entry.quantity > 0 && (
+                  <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#e8f5e8', borderRadius: '4px' }}>
+                    <strong>Total Value: ₹{(Number(entry.rate) * Number(entry.quantity)).toFixed(2)}</strong>
+                  </div>
+                )}
               </div>
             );
           })}
 
-          <button onClick={addNewEntryRow} style={{ marginRight: '10px' }}>
-            ➕ Add Another Entry
-          </button>
-          <button onClick={handleSubmit} style={{ backgroundColor: '#28a745', color: 'white', padding: '10px 20px' }}>
-            {editingId ? 'Update Stock' : 'Submit Stock Entries'}
-          </button>
+          <div style={{ marginTop: '20px' }}>
+            <button 
+              onClick={addNewEntryRow} 
+              style={{ 
+                marginRight: '10px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              ➕ Add Another Entry
+            </button>
+            <button 
+              onClick={handleSubmit} 
+              style={{ 
+                backgroundColor: '#28a745', 
+                color: 'white', 
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              {editingId ? 'Update Stock' : 'Submit Stock Entries'}
+            </button>
+          </div>
 
-          <hr />
+          <hr style={{ margin: '30px 0' }} />
 
           {/* Stock Entries Table */}
           <h3>All Stock Entries</h3>
@@ -1330,10 +1232,31 @@ function StockManagement() {
                       <td>{s.quantity}</td>
                       <td>₹{(Number(s.rate) * Number(s.quantity)).toFixed(2)}</td>
                       <td>
-                        <button onClick={() => handleEdit(s)} style={{ marginRight: '5px' }}>
+                        <button 
+                          onClick={() => handleEdit(s)} 
+                          style={{ 
+                            marginRight: '5px',
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            padding: '5px 10px',
+                            borderRadius: '3px',
+                            cursor: 'pointer'
+                          }}
+                        >
                           ✏ Edit
                         </button>
-                        <button onClick={() => handleDelete(s.id)} style={{ backgroundColor: '#dc3545', color: 'white' }}>
+                        <button 
+                          onClick={() => handleDelete(s.id)} 
+                          style={{ 
+                            backgroundColor: '#dc3545', 
+                            color: 'white',
+                            border: 'none',
+                            padding: '5px 10px',
+                            borderRadius: '3px',
+                            cursor: 'pointer'
+                          }}
+                        >
                           🗑 Delete
                         </button>
                       </td>
