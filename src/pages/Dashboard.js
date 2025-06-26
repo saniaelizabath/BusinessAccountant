@@ -60,7 +60,8 @@ const Dashboard = () => {
     <div style={{
       minHeight: '100vh',
       backgroundColor: '#f8f9fa',
-      padding: '30px'
+      padding: '30px',
+      fontFamily: 'Segoe UI, Arial, sans-serif'
     }}>
       <div style={{
         maxWidth: '1200px',
@@ -96,12 +97,15 @@ const Dashboard = () => {
           </button>
         </div>
 
-        {/* Management Cards Grid */}
+        {/* Management Cards Row */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '20px',
-          marginBottom: '40px'
+          display: 'flex',
+          flexDirection: 'row',
+          gap: '24px',
+          marginBottom: '40px',
+          overflowX: 'auto',
+          paddingBottom: '10px',
+          scrollbarWidth: 'thin',
         }}>
           <DashboardCard
             title="Products Management"
@@ -135,7 +139,7 @@ const Dashboard = () => {
           />
           <DashboardCard
             title="Monthly Revenue"
-            icon="��"
+            icon="💰"
             to="/monthlyrevenue"
             color="#E91E63"
           />

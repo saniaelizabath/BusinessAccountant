@@ -497,6 +497,10 @@ IMPORTANT:
           throw new Error('Data is required for create action');
         }
         
+        // Ensure 'date' is always the present date for employees
+        if (table === 'employees') {
+          data.date = new Date();
+        }
         // Add timestamps
         const timestamp = new Date();
         const documentData = {
@@ -560,6 +564,11 @@ IMPORTANT:
       console.error('Detailed error in executeQuery:', error);
       console.error('Query plan that failed:', queryPlan);
       
+      // Handle Firestore index error as 'no data found'
+      if (typeof error.message === 'string' && error.message.includes('The query requires an index')) {
+        console.warn('Firestore index error detected, treating as no data found.');
+        return [];
+      }
       // Provide more specific error messages
       if (error.code === 'permission-denied') {
         throw new Error('Database access denied. Make sure you are signed in and have proper permissions.');
@@ -576,7 +585,23 @@ IMPORTANT:
   // Format results for user display
   async formatResults(results, queryPlan, originalPrompt) {
     if (!results || results.length === 0) {
-      return "No results found for your query.";
+      // Use queryPlan.summary for a context-aware message
+      if (queryPlan && queryPlan.summary) {
+        // Try to convert summary to a negative statement
+        let summary = queryPlan.summary.trim();
+        // Simple heuristic: replace 'Finding', 'Listing', 'Showing', 'Displaying', 'Getting', 'Recording', 'Creating' with 'No ... found' or similar
+        summary = summary.replace(/^(Finding|Listing|Showing|Displaying|Getting|Recording|Creating) /i, 'No ');
+        // Remove trailing 's' for plural if needed
+        if (summary.endsWith('s')) summary = summary.slice(0, -1);
+        // Add 'found' if not present
+        if (!/found|made|recorded|created|available|present/i.test(summary)) {
+          summary += ' found';
+        }
+        // Capitalize first letter
+        summary = summary.charAt(0).toUpperCase() + summary.slice(1);
+        return summary + '.';
+      }
+      return "No data is present based on your query.";
     }
 
     const prompt = `
@@ -617,19 +642,37 @@ Format the response in a friendly, conversational tone.
   // Fallback formatting method
   basicFormatResults(results, queryPlan) {
     const { table } = queryPlan;
-    let response = `Found ${results.length} result(s) from ${table}:\n\n`;
-    
-    results.forEach((item, index) => {
-      response += `${index + 1}. `;
+    if (results.length === 1) {
+      // Format as a neat key-value list
+      const item = results[0];
+      let response = `**${(table.charAt(0).toUpperCase() + table.slice(1)).replace(/([A-Z])/g, ' $1').trim()} Information**\n\n`;
       Object.entries(item).forEach(([key, value]) => {
         if (key !== 'id' && value !== undefined && value !== null) {
-          response += `${key}: ${value}, `;
+          response += `- **${this.formatFieldName(key)}:** ${value}\n`;
         }
       });
-      response = response.slice(0, -2) + '\n';
-    });
-    
-    return response;
+      return response;
+    } else if (results.length > 1) {
+      // Format as a Markdown table for multiple results
+      const keys = Object.keys(results[0] || {}).filter(k => k !== 'id');
+      let response = `**${(table.charAt(0).toUpperCase() + table.slice(1)).replace(/([A-Z])/g, ' $1').trim()} List**\n\n`;
+      response += `| ${keys.map(this.formatFieldName).join(' | ')} |\n`;
+      response += `| ${keys.map(() => '---').join(' | ')} |\n`;
+      results.forEach(item => {
+        response += `| ${keys.map(k => item[k] ?? '').join(' | ')} |\n`;
+      });
+      return response;
+    } else {
+      return `No data is present based on your query.`;
+    }
+  }
+
+  // Helper to format field names nicely
+  formatFieldName(field) {
+    return field
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .replace(/_/g, ' ');
   }
 
   // Main chatbot processing method
@@ -640,6 +683,19 @@ Format the response in a friendly, conversational tone.
       // Step 1: Generate query plan
       console.log('Step 1: Generating query plan...');
       const queryPlan = await this.generateQueryPlan(userPrompt);
+      
+      // Ensure 'date' is set to current date for new employees if missing or invalid
+      if (
+        queryPlan.action === 'create' &&
+        queryPlan.table === 'employees'
+      ) {
+        if (
+          !queryPlan.data.date ||
+          isNaN(Date.parse(queryPlan.data.date))
+        ) {
+          queryPlan.data.date = new Date().toISOString();
+        }
+      }
       
       // Step 2: Execute query
       console.log('Step 2: Executing query...');

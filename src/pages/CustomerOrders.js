@@ -5,6 +5,45 @@ import { Timestamp } from 'firebase/firestore';
 import { Typography, Box, Grid, TextField, Button, Card, CardContent, Divider, IconButton, Collapse } from '@mui/material';
 import { Print, Visibility, VisibilityOff, Receipt, TableChart, Clear } from '@mui/icons-material';
 
+// Add main container style
+const mainContainerStyle = {
+  maxWidth: '1100px',
+  margin: '40px auto',
+  padding: '32px',
+  background: '#fff',
+  borderRadius: '16px',
+  boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+  fontFamily: 'Segoe UI, Arial, sans-serif',
+};
+
+const sectionHeaderStyle = {
+  color: '#1976d2',
+  fontWeight: 700,
+  fontSize: '1.5rem',
+  marginBottom: '18px',
+  marginTop: '32px',
+  letterSpacing: '0.5px',
+};
+
+const tableHeaderStyle = {
+  backgroundColor: '#1976d2',
+  color: 'white',
+  fontWeight: 'bold',
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
+};
+
+const tableCellStyle = {
+  padding: '12px',
+  border: '1px solid #ddd',
+  fontSize: '1rem',
+};
+
+const stripedRowStyle = idx => ({
+  backgroundColor: idx % 2 === 0 ? '#f9fbfd' : '#fff',
+});
+
 const CustomerOrders = () => {
   const [userId, setUserId] = useState(null);
   const [products, setProducts] = useState([]);
@@ -421,9 +460,9 @@ const CustomerOrders = () => {
   ].sort((a, b) => b.sortDate - a.sortDate);
   
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+    <Box sx={mainContainerStyle}>
       {/* Header */}
-      <Card sx={{ mb: 3, boxShadow: 3 }}>
+      <Card sx={{ mb: 3, boxShadow: 3, borderRadius: 3 }}>
         <CardContent>
           <Typography variant="h4" component="h1" sx={{ textAlign: 'center', color: '#1976d2', fontWeight: 'bold', mb: 1 }}>
             Johnsons Cement Products
@@ -435,16 +474,16 @@ const CustomerOrders = () => {
       </Card>
 
       {/* Customer Orders Section - Now always visible */}
-      <Card sx={{ mb: 4, boxShadow: 2 }}>
+      <Card sx={{ mb: 4, boxShadow: 2, borderRadius: 3 }}>
         <CardContent>
-          <Typography variant="h5" sx={{ mb: 3, color: '#1976d2', fontWeight: 'bold' }}>
+          <Typography variant="h5" sx={sectionHeaderStyle}>
             {isEditMode ? 'Edit Customer Order' : 'Add Customer Order'}
           </Typography>
 
           <form onSubmit={handleSubmit}>
             <Box sx={{ overflowX: 'auto', mb: 3 }}>
               {/* Customer Info Section */}
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Customer Information</Typography>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#1976d2' }}>Customer Information</Typography>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid item xs={12} md={3}>
                   <TextField
@@ -489,22 +528,22 @@ const CustomerOrders = () => {
               </Grid>
 
               {/* Items Section */}
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Items</Typography>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#1976d2' }}>Items</Typography>
               <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', border: '1px solid #ddd', marginBottom: '20px' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#1976d2', color: 'white' }}>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Item Name</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Item Description</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Rate</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Quantity</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Subtotal</th>
-                    <th style={{ padding: '12px', border: '1px solid #ddd', fontWeight: 'bold' }}>Action</th>
+                  <tr style={tableHeaderStyle}>
+                    <th style={tableCellStyle}>Item Name</th>
+                    <th style={tableCellStyle}>Item Description</th>
+                    <th style={tableCellStyle}>Rate</th>
+                    <th style={tableCellStyle}>Quantity</th>
+                    <th style={tableCellStyle}>Subtotal</th>
+                    <th style={tableCellStyle}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, index) => (
-                    <tr key={index}>
-                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                    <tr key={index} style={stripedRowStyle(index)}>
+                      <td style={tableCellStyle}>
                         <input 
                           list={`productNames-${index}`} 
                           value={item.itemName} 
@@ -517,7 +556,7 @@ const CustomerOrders = () => {
                           ))}
                         </datalist>
                       </td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <td style={tableCellStyle}>
                         <input 
                           list={`productDescriptions-${index}`} 
                           value={item.itemDescription} 
@@ -530,7 +569,7 @@ const CustomerOrders = () => {
                             .map((p, i) => <option key={i} value={p.itemDescription} />)}
                         </datalist>
                       </td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <td style={tableCellStyle}>
                         <input 
                           type="number" 
                           value={item.rate} 
@@ -538,7 +577,7 @@ const CustomerOrders = () => {
                           style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px', backgroundColor: '#f5f5f5' }} 
                         />
                       </td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd' }}>
+                      <td style={tableCellStyle}>
                         <input 
                           type="number" 
                           value={item.quantity} 
@@ -546,10 +585,10 @@ const CustomerOrders = () => {
                           style={{ border: '1px solid #ccc', padding: '8px', width: '100%', borderRadius: '4px' }} 
                         />
                       </td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', backgroundColor: '#f0f0f0', fontWeight: 'bold', textAlign: 'center' }}>
+                      <td style={{ ...tableCellStyle, backgroundColor: '#f0f0f0', fontWeight: 'bold', textAlign: 'center' }}>
                         {(Number(item.rate) * Number(item.quantity)) || 0}
                       </td>
-                      <td style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>
+                      <td style={tableCellStyle}>
                         <Button 
                           variant="outlined" 
                           color="error" 
@@ -603,7 +642,7 @@ const CustomerOrders = () => {
               </Box>
 
               {/* Order Summary */}
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Order Summary</Typography>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: '#1976d2' }}>Order Summary</Typography>
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid item xs={12} md={2}>
                   <TextField
@@ -743,9 +782,9 @@ const CustomerOrders = () => {
       </Card>
 
       {/* Filters Section */}
-      <Card sx={{ mb: 3, boxShadow: 2 }}>
+      <Card sx={{ mb: 3, boxShadow: 2, borderRadius: 3 }}>
         <CardContent>
-          <Typography variant="h6" sx={{ mb: 2, color: '#1976d2', fontWeight: 'bold' }}>
+          <Typography variant="h6" sx={sectionHeaderStyle}>
             Filter Records
           </Typography>
           <Grid container spacing={3}>
@@ -798,10 +837,10 @@ const CustomerOrders = () => {
 
 
       {/* Orders & Payment Records Section */}
-      <Card sx={{ mb: 3, boxShadow: 2 }}>
+      <Card sx={{ mb: 3, boxShadow: 2, borderRadius: 3 }}>
         <CardContent>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h5" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+            <Typography variant="h5" sx={sectionHeaderStyle}>
               Orders & Payment Records
             </Typography>
             <Button
@@ -809,7 +848,7 @@ const CustomerOrders = () => {
               variant="contained"
               color="secondary"
               startIcon={<Print />}
-              sx={{ px: 3, py: 1.5 }}
+              sx={{ px: 3, py: 1.5, borderRadius: 2 }}
             >
               Print Records
             </Button>
@@ -826,66 +865,66 @@ const CustomerOrders = () => {
             <Box sx={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: '1400px', borderCollapse: 'collapse', border: '1px solid #333' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#1976d2', color: 'white' }}>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Type</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Date</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Customer Name</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Address</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Phone</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Item</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Description</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Rate</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Quantity</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Discount</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Advance</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Amount Given</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Total</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Balance/Payment</th>
-                    <th style={{ border: '1px solid #333', padding: '12px', fontWeight: 'bold' }}>Actions</th>
+                  <tr style={tableHeaderStyle}>
+                    <th style={tableCellStyle}>Type</th>
+                    <th style={tableCellStyle}>Date</th>
+                    <th style={tableCellStyle}>Customer Name</th>
+                    <th style={tableCellStyle}>Address</th>
+                    <th style={tableCellStyle}>Phone</th>
+                    <th style={tableCellStyle}>Item</th>
+                    <th style={tableCellStyle}>Description</th>
+                    <th style={tableCellStyle}>Rate</th>
+                    <th style={tableCellStyle}>Quantity</th>
+                    <th style={tableCellStyle}>Discount</th>
+                    <th style={tableCellStyle}>Advance</th>
+                    <th style={tableCellStyle}>Amount Given</th>
+                    <th style={tableCellStyle}>Total</th>
+                    <th style={tableCellStyle}>Balance/Payment</th>
+                    <th style={tableCellStyle}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {combinedData.map((record, idx) => (
-                    <tr key={`${record.type}-${idx}`} className={record.type === 'payment' ? 'payment-row' : 'order-row'}>
-                      <td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold', textAlign: 'center' }}>
+                    <tr key={`${record.type}-${idx}`} className={record.type === 'payment' ? 'payment-row' : 'order-row'} style={stripedRowStyle(idx)}>
+                      <td style={tableCellStyle}>
                         {record.type === 'order' ? (
                           <span style={{ color: '#1976d2', backgroundColor: '#e3f2fd', padding: '4px 8px', borderRadius: '4px' }}>ORDER</span>
                         ) : (
                           <span style={{ color: '#2e7d32', backgroundColor: '#e8f5e8', padding: '4px 8px', borderRadius: '4px' }}>PAYMENT</span>
                         )}
                       </td>
-                      <td style={{ border: '1px solid #333', padding: '8px' }}>{record.date}</td>
-                      <td style={{ border: '1px solid #333', padding: '8px', fontWeight: 'bold' }}>{record.customerName}</td>
+                      <td style={tableCellStyle}>{record.date}</td>
+                      <td style={tableCellStyle}>{record.customerName}</td>
                       {record.type === 'order' ? (
                         <>
-                          <td style={{ border: '1px solid #333', padding: '8px' }}>{record.address}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px' }}>{record.number}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px' }}>
+                          <td style={tableCellStyle}>{record.address}</td>
+                          <td style={tableCellStyle}>{record.number}</td>
+                          <td style={tableCellStyle}>
                             {record.items ? record.items.map((item, idx) => (
                               <div key={idx}>{item.itemName}</div>
                             )) : record.itemName}
                           </td>
-                          <td style={{ border: '1px solid #333', padding: '8px' }}>
+                          <td style={tableCellStyle}>
                             {record.items ? record.items.map((item, idx) => (
                               <div key={idx}>{item.itemDescription}</div>
                             )) : record.itemDescription}
                           </td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>
+                          <td style={tableCellStyle}>
                             {record.items ? record.items.map((item, idx) => (
                               <div key={idx}>{item.rate}</div>
                             )) : record.rate}
                           </td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'center' }}>
+                          <td style={tableCellStyle}>
                             {record.items ? record.items.map((item, idx) => (
                               <div key={idx}>{item.quantity}</div>
                             )) : record.quantity}
                           </td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.discount}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.advance}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right' }}>{record.amountGiven}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{record.totalAmount}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }} className="balance-positive">₹{record.balance}</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'center' }}>
+                          <td style={tableCellStyle}>{record.discount}</td>
+                          <td style={tableCellStyle}>{record.advance}</td>
+                          <td style={tableCellStyle}>{record.amountGiven}</td>
+                          <td style={tableCellStyle}>{record.totalAmount}</td>
+                          <td style={tableCellStyle} className={record.balance >= 0 ? 'balance-positive' : 'balance-negative'}>₹{record.balance.toFixed(2)}</td>
+                          <td style={tableCellStyle}>
                             <Button
                               variant="outlined"
                               color="primary"
@@ -900,16 +939,7 @@ const CustomerOrders = () => {
                       ) : (
 
                         <>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', color: '#999', textAlign: 'center' }}>-</td>
-                          <td style={{ border: '1px solid #333', padding: '8px', textAlign: 'right', fontWeight: 'bold' }} className="balance-negative">-₹{record.amount}</td>
+                          <td style={tableCellStyle} className="balance-negative">-₹{record.amount}</td>
                         </>
                       )}
                     </tr>
@@ -926,7 +956,7 @@ const CustomerOrders = () => {
       </Card>
 
       {/* Net Balance Display */}
-      <Card sx={{ mb: 3, boxShadow: 2 }}>
+      <Card sx={{ mb: 3, boxShadow: 2, borderRadius: 3 }}>
         <CardContent sx={{ textAlign: 'center' }}>
           <Typography 
             variant="h5" 
@@ -946,9 +976,9 @@ const CustomerOrders = () => {
 
       {/* Payment Recording Section */}
       {searchCustomerName && filteredOrders.length > 0 && (
-        <Card sx={{ boxShadow: 2 }}>
+        <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
           <CardContent>
-            <Typography variant="h6" sx={{ mb: 3, color: '#1976d2', fontWeight: 'bold' }}>
+            <Typography variant="h6" sx={sectionHeaderStyle}>
               Record Payment for: {searchCustomerName.toUpperCase()}
             </Typography>
             <Grid container spacing={3}>
